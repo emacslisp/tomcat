@@ -15,165 +15,158 @@
  * limitations under the License.
  */
 
-
 package org.apache.tomcat.util.digester;
 
 import org.xml.sax.Attributes;
 
-
 /**
- * <p>Rule implementation that uses an {@link ObjectCreationFactory} to create
- * a new object which it pushes onto the object stack.  When the element is
- * complete, the object will be popped.</p>
+ * <p>
+ * Rule implementation that uses an {@link ObjectCreationFactory} to create a
+ * new object which it pushes onto the object stack. When the element is
+ * complete, the object will be popped.
+ * </p>
  *
- * <p>This rule is intended in situations where the element's attributes are
- * needed before the object can be created.  A common scenario is for the
- * ObjectCreationFactory implementation to use the attributes  as parameters
- * in a call to either a factory method or to a non-empty constructor.
+ * <p>
+ * This rule is intended in situations where the element's attributes are needed
+ * before the object can be created. A common scenario is for the
+ * ObjectCreationFactory implementation to use the attributes as parameters in a
+ * call to either a factory method or to a non-empty constructor.
  */
 
 public class FactoryCreateRule extends Rule {
 
-    // ----------------------------------------------------------- Fields
+	// ----------------------------------------------------------- Fields
 
-    /** Should exceptions thrown by the factory be ignored? */
-    private boolean ignoreCreateExceptions;
-    /** Stock to manage */
-    private ArrayStack<Boolean> exceptionIgnoredStack;
+	/** Should exceptions thrown by the factory be ignored? */
+	private boolean ignoreCreateExceptions;
+	/** Stock to manage */
+	private ArrayStack<Boolean> exceptionIgnoredStack;
 
+	// ----------------------------------------------------------- Constructors
 
-    // ----------------------------------------------------------- Constructors
+	/**
+	 * Construct a factory create rule using the given, already instantiated,
+	 * {@link ObjectCreationFactory}.
+	 *
+	 * @param creationFactory
+	 *            called on to create the object.
+	 * @param ignoreCreateExceptions
+	 *            if true, exceptions thrown by the object creation factory will
+	 *            be ignored.
+	 */
+	public FactoryCreateRule(ObjectCreationFactory creationFactory, boolean ignoreCreateExceptions) {
 
-    /**
-     * Construct a factory create rule using the given, already instantiated,
-     * {@link ObjectCreationFactory}.
-     *
-     * @param creationFactory called on to create the object.
-     * @param ignoreCreateExceptions if true, exceptions thrown by the object
-     *  creation factory will be ignored.
-     */
-    public FactoryCreateRule(
-                            ObjectCreationFactory creationFactory,
-                            boolean ignoreCreateExceptions) {
+		this.creationFactory = creationFactory;
+		this.ignoreCreateExceptions = ignoreCreateExceptions;
+	}
 
-        this.creationFactory = creationFactory;
-        this.ignoreCreateExceptions = ignoreCreateExceptions;
-    }
+	// ----------------------------------------------------- Instance Variables
 
+	/**
+	 * The object creation factory we will use to instantiate objects as
+	 * required based on the attributes specified in the matched XML element.
+	 */
+	protected ObjectCreationFactory creationFactory = null;
 
-    // ----------------------------------------------------- Instance Variables
+	// --------------------------------------------------------- Public Methods
 
-    /**
-     * The object creation factory we will use to instantiate objects
-     * as required based on the attributes specified in the matched XML
-     * element.
-     */
-    protected ObjectCreationFactory creationFactory = null;
+	/**
+	 * Process the beginning of this element.
+	 *
+	 * @param attributes
+	 *            The attribute list of this element
+	 */
+	@Override
+	public void begin(String namespace, String name, Attributes attributes) throws Exception
+	{
 
+		if (ignoreCreateExceptions) {
 
-    // --------------------------------------------------------- Public Methods
+			if (exceptionIgnoredStack == null) {
+				exceptionIgnoredStack = new ArrayStack<>();
+			}
 
+			try {
+				Object instance = creationFactory.createObject(attributes);
 
-    /**
-     * Process the beginning of this element.
-     *
-     * @param attributes The attribute list of this element
-     */
-    @Override
-    public void begin(String namespace, String name, Attributes attributes) throws Exception {
+				if (digester.log.isDebugEnabled()) {
+					digester.log
+							.debug("[FactoryCreateRule]{" + digester.match + "} New " + instance.getClass().getName());
+				}
+				digester.push(instance);
+				exceptionIgnoredStack.push(Boolean.FALSE);
 
-        if (ignoreCreateExceptions) {
+			} catch (Exception e) {
+				// log message and error
+				if (digester.log.isInfoEnabled()) {
+					digester.log.info("[FactoryCreateRule] Create exception ignored: "
+							+ ((e.getMessage() == null) ? e.getClass().getName() : e.getMessage()));
+					if (digester.log.isDebugEnabled()) {
+						digester.log.debug("[FactoryCreateRule] Ignored exception:", e);
+					}
+				}
+				exceptionIgnoredStack.push(Boolean.TRUE);
+			}
 
-            if (exceptionIgnoredStack == null) {
-                exceptionIgnoredStack = new ArrayStack<>();
-            }
+		} else {
+			Object instance = creationFactory.createObject(attributes);
 
-            try {
-                Object instance = creationFactory.createObject(attributes);
+			if (digester.log.isDebugEnabled()) {
+				digester.log.debug("[FactoryCreateRule]{" + digester.match + "} New " + instance.getClass().getName());
+			}
+			digester.push(instance);
+		}
+	}
 
-                if (digester.log.isDebugEnabled()) {
-                    digester.log.debug("[FactoryCreateRule]{" + digester.match +
-                            "} New " + instance.getClass().getName());
-                }
-                digester.push(instance);
-                exceptionIgnoredStack.push(Boolean.FALSE);
+	/**
+	 * Process the end of this element.
+	 */
+	@Override
+	public void end(String namespace, String name) throws Exception
+	{
 
-            } catch (Exception e) {
-                // log message and error
-                if (digester.log.isInfoEnabled()) {
-                    digester.log.info("[FactoryCreateRule] Create exception ignored: " +
-                        ((e.getMessage() == null) ? e.getClass().getName() : e.getMessage()));
-                    if (digester.log.isDebugEnabled()) {
-                        digester.log.debug("[FactoryCreateRule] Ignored exception:", e);
-                    }
-                }
-                exceptionIgnoredStack.push(Boolean.TRUE);
-            }
+		// check if object was created
+		// this only happens if an exception was thrown and we're ignoring them
+		if (ignoreCreateExceptions && exceptionIgnoredStack != null && !(exceptionIgnoredStack.empty())) {
 
-        } else {
-            Object instance = creationFactory.createObject(attributes);
+			if ((exceptionIgnoredStack.pop()).booleanValue()) {
+				// creation exception was ignored
+				// nothing was put onto the stack
+				if (digester.log.isTraceEnabled()) {
+					digester.log.trace("[FactoryCreateRule] No creation so no push so no pop");
+				}
+				return;
+			}
+		}
 
-            if (digester.log.isDebugEnabled()) {
-                digester.log.debug("[FactoryCreateRule]{" + digester.match +
-                        "} New " + instance.getClass().getName());
-            }
-            digester.push(instance);
-        }
-    }
+		Object top = digester.pop();
+		if (digester.log.isDebugEnabled()) {
+			digester.log.debug("[FactoryCreateRule]{" + digester.match + "} Pop " + top.getClass().getName());
+		}
 
+	}
 
-    /**
-     * Process the end of this element.
-     */
-    @Override
-    public void end(String namespace, String name) throws Exception {
+	/**
+	 * Clean up after parsing is complete.
+	 */
+	@Override
+	public void finish() throws Exception
+	{
+		// NO-OP
+	}
 
-        // check if object was created
-        // this only happens if an exception was thrown and we're ignoring them
-        if (
-                ignoreCreateExceptions &&
-                exceptionIgnoredStack != null &&
-                !(exceptionIgnoredStack.empty())) {
-
-            if ((exceptionIgnoredStack.pop()).booleanValue()) {
-                // creation exception was ignored
-                // nothing was put onto the stack
-                if (digester.log.isTraceEnabled()) {
-                    digester.log.trace("[FactoryCreateRule] No creation so no push so no pop");
-                }
-                return;
-            }
-        }
-
-        Object top = digester.pop();
-        if (digester.log.isDebugEnabled()) {
-            digester.log.debug("[FactoryCreateRule]{" + digester.match +
-                    "} Pop " + top.getClass().getName());
-        }
-
-    }
-
-
-    /**
-     * Clean up after parsing is complete.
-     */
-    @Override
-    public void finish() throws Exception {
-        // NO-OP
-    }
-
-
-    /**
-     * Render a printable version of this Rule.
-     */
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("FactoryCreateRule[");
-        if (creationFactory != null) {
-            sb.append("creationFactory=");
-            sb.append(creationFactory);
-        }
-        sb.append("]");
-        return sb.toString();
-    }
+	/**
+	 * Render a printable version of this Rule.
+	 */
+	@Override
+	public String toString()
+	{
+		StringBuilder sb = new StringBuilder("FactoryCreateRule[");
+		if (creationFactory != null) {
+			sb.append("creationFactory=");
+			sb.append(creationFactory);
+		}
+		sb.append("]");
+		return sb.toString();
+	}
 }

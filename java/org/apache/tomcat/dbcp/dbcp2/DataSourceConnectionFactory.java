@@ -28,25 +28,26 @@ import javax.sql.DataSource;
  * @since 2.0
  */
 public class DataSourceConnectionFactory implements ConnectionFactory {
-    public DataSourceConnectionFactory(final DataSource source) {
-        this(source,null,null);
-    }
+	public DataSourceConnectionFactory(final DataSource source) {
+		this(source, null, null);
+	}
 
-    public DataSourceConnectionFactory(final DataSource source, final String uname, final String passwd) {
-        _source = source;
-        _uname = uname;
-        _passwd = passwd;
-    }
+	public DataSourceConnectionFactory(final DataSource source, final String uname, final String passwd) {
+		_source = source;
+		_uname = uname;
+		_passwd = passwd;
+	}
 
-    @Override
-    public Connection createConnection() throws SQLException {
-        if(null == _uname && null == _passwd) {
-            return _source.getConnection();
-        }
-        return _source.getConnection(_uname,_passwd);
-    }
+	@Override
+	public Connection createConnection() throws SQLException
+	{
+		if (null == _uname && null == _passwd) {
+			return _source.getConnection();
+		}
+		return _source.getConnection(_uname, _passwd);
+	}
 
-    private final String _uname;
-    private final String _passwd;
-    private final DataSource _source;
+	private final String _uname;
+	private final String _passwd;
+	private final DataSource _source;
 }

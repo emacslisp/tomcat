@@ -38,192 +38,192 @@ import java.util.logging.LogRecord;
  */
 public class OneLineFormatter extends Formatter {
 
-    private static final String ST_SEP = System.lineSeparator() + " ";
-    private static final String UNKNOWN_THREAD_NAME = "Unknown thread with ID ";
-    private static final Object threadMxBeanLock = new Object();
-    private static volatile ThreadMXBean threadMxBean = null;
-    private static final int THREAD_NAME_CACHE_SIZE = 10000;
-    private static ThreadLocal<LinkedHashMap<Integer,String>> threadNameCache =
-            new ThreadLocal<LinkedHashMap<Integer,String>>() {
+	private static final String ST_SEP = System.lineSeparator() + " ";
+	private static final String UNKNOWN_THREAD_NAME = "Unknown thread with ID ";
+	private static final Object threadMxBeanLock = new Object();
+	private static volatile ThreadMXBean threadMxBean = null;
+	private static final int THREAD_NAME_CACHE_SIZE = 10000;
+	private static ThreadLocal<LinkedHashMap<Integer, String>> threadNameCache = new ThreadLocal<LinkedHashMap<Integer, String>>() {
 
-        @Override
-        protected LinkedHashMap<Integer,String> initialValue() {
-            return new LinkedHashMap<Integer,String>() {
+		@Override
+		protected LinkedHashMap<Integer, String> initialValue()
+		{
+			return new LinkedHashMap<Integer, String>() {
 
-                private static final long serialVersionUID = 1L;
+				private static final long serialVersionUID = 1L;
 
-                @Override
-                protected boolean removeEldestEntry(
-                        Entry<Integer, String> eldest) {
-                    return (size() > THREAD_NAME_CACHE_SIZE);
-                }
-            };
-        }
-    };
+				@Override
+				protected boolean removeEldestEntry(Entry<Integer, String> eldest)
+				{
+					return (size() > THREAD_NAME_CACHE_SIZE);
+				}
+			};
+		}
+	};
 
-    /* Timestamp format */
-    private static final String DEFAULT_TIME_FORMAT = "dd-MMM-yyyy HH:mm:ss";
+	/* Timestamp format */
+	private static final String DEFAULT_TIME_FORMAT = "dd-MMM-yyyy HH:mm:ss";
 
-    /**
-     * The size of our global date format cache
-     */
-    private static final int globalCacheSize = 30;
+	/**
+	 * The size of our global date format cache
+	 */
+	private static final int globalCacheSize = 30;
 
-    /**
-     * The size of our thread local date format cache
-     */
-    private static final int localCacheSize = 5;
+	/**
+	 * The size of our thread local date format cache
+	 */
+	private static final int localCacheSize = 5;
 
-    /**
-     * Thread local date format cache.
-     */
-    private ThreadLocal<DateFormatCache> localDateCache;
+	/**
+	 * Thread local date format cache.
+	 */
+	private ThreadLocal<DateFormatCache> localDateCache;
 
+	public OneLineFormatter() {
+		String timeFormat = LogManager.getLogManager().getProperty(OneLineFormatter.class.getName() + ".timeFormat");
+		if (timeFormat == null) {
+			timeFormat = DEFAULT_TIME_FORMAT;
+		}
+		setTimeFormat(timeFormat);
+	}
 
-    public OneLineFormatter() {
-        String timeFormat = LogManager.getLogManager().getProperty(
-                OneLineFormatter.class.getName() + ".timeFormat");
-        if (timeFormat == null) {
-            timeFormat = DEFAULT_TIME_FORMAT;
-        }
-        setTimeFormat(timeFormat);
-    }
+	/**
+	 * Specify the time format to use for time stamps in log messages.
+	 *
+	 * @param timeFormat
+	 *            The format to use using the {@link java.text.SimpleDateFormat}
+	 *            syntax
+	 */
+	public void setTimeFormat(String timeFormat)
+	{
+		DateFormatCache globalDateCache = new DateFormatCache(globalCacheSize, timeFormat, null);
+		localDateCache = new ThreadLocal<DateFormatCache>() {
+			@Override
+			protected DateFormatCache initialValue()
+			{
+				return new DateFormatCache(localCacheSize, timeFormat, globalDateCache);
+			}
+		};
+	}
 
+	/**
+	 * Obtain the format currently being used for time stamps in log messages.
+	 *
+	 * @return The current format in {@link java.text.SimpleDateFormat} syntax
+	 */
+	public String getTimeFormat()
+	{
+		return localDateCache.get().getTimeFormat();
+	}
 
-    /**
-     * Specify the time format to use for time stamps in log messages.
-     *
-     * @param timeFormat The format to use using the
-     *                   {@link java.text.SimpleDateFormat} syntax
-     */
-    public void setTimeFormat(String timeFormat) {
-        DateFormatCache globalDateCache = new DateFormatCache(globalCacheSize, timeFormat, null);
-        localDateCache = new ThreadLocal<DateFormatCache>() {
-            @Override
-            protected DateFormatCache initialValue() {
-                return new DateFormatCache(localCacheSize, timeFormat, globalDateCache);
-            }
-        };
-    }
+	@Override
+	public String format(LogRecord record)
+	{
+		StringBuilder sb = new StringBuilder();
 
+		// Timestamp
+		addTimestamp(sb, record.getMillis());
 
-    /**
-     * Obtain the format currently being used for time stamps in log messages.
-     *
-     * @return The current format in {@link java.text.SimpleDateFormat} syntax
-     */
-    public String getTimeFormat() {
-        return localDateCache.get().getTimeFormat();
-    }
+		// Severity
+		sb.append(' ');
+		sb.append(record.getLevel().getLocalizedName());
 
+		// Thread
+		sb.append(' ');
+		sb.append('[');
+		if (Thread.currentThread() instanceof AsyncFileHandler.LoggerThread) {
+			// If using the async handler can't get the thread name from the
+			// current thread.
+			sb.append(getThreadName(record.getThreadID()));
+		} else {
+			sb.append(Thread.currentThread().getName());
+		}
+		sb.append(']');
 
-    @Override
-    public String format(LogRecord record) {
-        StringBuilder sb = new StringBuilder();
+		// Source
+		sb.append(' ');
+		sb.append(record.getSourceClassName());
+		sb.append('.');
+		sb.append(record.getSourceMethodName());
 
-        // Timestamp
-        addTimestamp(sb, record.getMillis());
+		// Message
+		sb.append(' ');
+		sb.append(formatMessage(record));
 
-        // Severity
-        sb.append(' ');
-        sb.append(record.getLevel().getLocalizedName());
+		// Stack trace
+		if (record.getThrown() != null) {
+			sb.append(ST_SEP);
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			record.getThrown().printStackTrace(pw);
+			pw.close();
+			sb.append(sw.getBuffer());
+		}
 
-        // Thread
-        sb.append(' ');
-        sb.append('[');
-        if (Thread.currentThread() instanceof AsyncFileHandler.LoggerThread) {
-            // If using the async handler can't get the thread name from the
-            // current thread.
-            sb.append(getThreadName(record.getThreadID()));
-        } else {
-            sb.append(Thread.currentThread().getName());
-        }
-        sb.append(']');
+		// New line for next record
+		sb.append(System.lineSeparator());
 
-        // Source
-        sb.append(' ');
-        sb.append(record.getSourceClassName());
-        sb.append('.');
-        sb.append(record.getSourceMethodName());
+		return sb.toString();
+	}
 
-        // Message
-        sb.append(' ');
-        sb.append(formatMessage(record));
+	protected void addTimestamp(StringBuilder buf, long timestamp)
+	{
+		buf.append(localDateCache.get().getFormat(timestamp));
+		long frac = timestamp % 1000;
+		buf.append('.');
+		if (frac < 100) {
+			if (frac < 10) {
+				buf.append('0');
+				buf.append('0');
+			} else {
+				buf.append('0');
+			}
+		}
+		buf.append(frac);
+	}
 
-        // Stack trace
-        if (record.getThrown() != null) {
-            sb.append(ST_SEP);
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            record.getThrown().printStackTrace(pw);
-            pw.close();
-            sb.append(sw.getBuffer());
-        }
+	/**
+	 * LogRecord has threadID but no thread name. LogRecord uses an int for
+	 * thread ID but thread IDs are longs. If the real thread ID >
+	 * (Integer.MAXVALUE / 2) LogRecord uses it's own ID in an effort to avoid
+	 * clashes due to overflow.
+	 * <p>
+	 * Words fail me to describe what I think of the design decision to use an
+	 * int in LogRecord for a long value and the resulting mess that follows.
+	 */
+	private static String getThreadName(int logRecordThreadId)
+	{
+		Map<Integer, String> cache = threadNameCache.get();
+		String result = null;
 
-        // New line for next record
-        sb.append(System.lineSeparator());
+		if (logRecordThreadId > (Integer.MAX_VALUE / 2)) {
+			result = cache.get(Integer.valueOf(logRecordThreadId));
+		}
 
-        return sb.toString();
-    }
+		if (result != null) {
+			return result;
+		}
 
-    protected void addTimestamp(StringBuilder buf, long timestamp) {
-        buf.append(localDateCache.get().getFormat(timestamp));
-        long frac = timestamp % 1000;
-        buf.append('.');
-        if (frac < 100) {
-            if (frac < 10) {
-                buf.append('0');
-                buf.append('0');
-            } else {
-                buf.append('0');
-            }
-        }
-        buf.append(frac);
-    }
+		if (logRecordThreadId > Integer.MAX_VALUE / 2) {
+			result = UNKNOWN_THREAD_NAME + logRecordThreadId;
+		} else {
+			// Double checked locking OK as threadMxBean is volatile
+			if (threadMxBean == null) {
+				synchronized (threadMxBeanLock) {
+					if (threadMxBean == null) {
+						threadMxBean = ManagementFactory.getThreadMXBean();
+					}
+				}
+			}
+			ThreadInfo threadInfo = threadMxBean.getThreadInfo(logRecordThreadId);
+			if (threadInfo == null) {
+				return Long.toString(logRecordThreadId);
+			}
+			result = threadInfo.getThreadName();
+		}
 
+		cache.put(Integer.valueOf(logRecordThreadId), result);
 
-    /**
-     * LogRecord has threadID but no thread name.
-     * LogRecord uses an int for thread ID but thread IDs are longs.
-     * If the real thread ID > (Integer.MAXVALUE / 2) LogRecord uses it's own
-     * ID in an effort to avoid clashes due to overflow.
-     * <p>
-     * Words fail me to describe what I think of the design decision to use an
-     * int in LogRecord for a long value and the resulting mess that follows.
-     */
-    private static String getThreadName(int logRecordThreadId) {
-        Map<Integer,String> cache = threadNameCache.get();
-        String result = null;
-
-        if (logRecordThreadId > (Integer.MAX_VALUE / 2)) {
-            result = cache.get(Integer.valueOf(logRecordThreadId));
-        }
-
-        if (result != null) {
-            return result;
-        }
-
-        if (logRecordThreadId > Integer.MAX_VALUE / 2) {
-            result = UNKNOWN_THREAD_NAME + logRecordThreadId;
-        } else {
-            // Double checked locking OK as threadMxBean is volatile
-            if (threadMxBean == null) {
-                synchronized (threadMxBeanLock) {
-                    if (threadMxBean == null) {
-                        threadMxBean = ManagementFactory.getThreadMXBean();
-                    }
-                }
-            }
-            ThreadInfo threadInfo =
-                    threadMxBean.getThreadInfo(logRecordThreadId);
-            if (threadInfo == null) {
-                return Long.toString(logRecordThreadId);
-            }
-            result = threadInfo.getThreadName();
-        }
-
-        cache.put(Integer.valueOf(logRecordThreadId), result);
-
-        return result;
-    }
+		return result;
+	}
 }

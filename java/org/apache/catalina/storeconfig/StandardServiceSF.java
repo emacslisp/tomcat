@@ -30,40 +30,46 @@ import org.apache.catalina.core.StandardService;
  */
 public class StandardServiceSF extends StoreFactoryBase {
 
-    /**
-     * Store the specified service element children.
-     *
-     * @param aWriter Current output writer
-     * @param indent Indentation level
-     * @param aService Service to store
-     * @param parentDesc The element description
-     * @throws Exception Configuration storing error
-     */
-    @Override
-    public void storeChildren(PrintWriter aWriter, int indent, Object aService,
-            StoreDescription parentDesc) throws Exception {
-        if (aService instanceof StandardService) {
-            StandardService service = (StandardService) aService;
-            // Store nested <Listener> elements
-            LifecycleListener listeners[] = service.findLifecycleListeners();
-            storeElementArray(aWriter, indent, listeners);
+	/**
+	 * Store the specified service element children.
+	 *
+	 * @param aWriter
+	 *            Current output writer
+	 * @param indent
+	 *            Indentation level
+	 * @param aService
+	 *            Service to store
+	 * @param parentDesc
+	 *            The element description
+	 * @throws Exception
+	 *             Configuration storing error
+	 */
+	@Override
+	public void storeChildren(PrintWriter aWriter, int indent, Object aService, StoreDescription parentDesc)
+			throws Exception
+	{
+		if (aService instanceof StandardService) {
+			StandardService service = (StandardService) aService;
+			// Store nested <Listener> elements
+			LifecycleListener listeners[] = service.findLifecycleListeners();
+			storeElementArray(aWriter, indent, listeners);
 
-            // Store nested <Executor> elements
-            Executor[] executors = service.findExecutors();
-            storeElementArray(aWriter, indent, executors);
+			// Store nested <Executor> elements
+			Executor[] executors = service.findExecutors();
+			storeElementArray(aWriter, indent, executors);
 
-            Connector connectors[] = service.findConnectors();
-            storeElementArray(aWriter, indent, connectors);
+			Connector connectors[] = service.findConnectors();
+			storeElementArray(aWriter, indent, connectors);
 
-            // Store nested <Engine> element
-            Engine container = service.getContainer();
-            if (container != null) {
-                StoreDescription elementDesc = getRegistry().findDescription(container.getClass());
-                if (elementDesc != null) {
-                    IStoreFactory factory = elementDesc.getStoreFactory();
-                    factory.store(aWriter, indent, container);
-                }
-            }
-        }
-    }
+			// Store nested <Engine> element
+			Engine container = service.getContainer();
+			if (container != null) {
+				StoreDescription elementDesc = getRegistry().findDescription(container.getClass());
+				if (elementDesc != null) {
+					IStoreFactory factory = elementDesc.getStoreFactory();
+					factory.store(aWriter, indent, container);
+				}
+			}
+		}
+	}
 }

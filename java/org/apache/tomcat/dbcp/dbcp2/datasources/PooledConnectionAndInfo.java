@@ -20,45 +20,51 @@ package org.apache.tomcat.dbcp.dbcp2.datasources;
 import javax.sql.PooledConnection;
 
 /**
- * Immutable poolable object holding a PooledConnection along with the username and password
- * used to create the connection.
+ * Immutable poolable object holding a PooledConnection along with the username
+ * and password used to create the connection.
  *
  * @since 2.0
  */
 final class PooledConnectionAndInfo {
-    private final PooledConnection pooledConnection;
-    private final String password;
-    private final String username;
-    private final UserPassKey upkey;
+	private final PooledConnection pooledConnection;
+	private final String password;
+	private final String username;
+	private final UserPassKey upkey;
 
-    PooledConnectionAndInfo(final PooledConnection pc, final String username, final String password) {
-        this.pooledConnection = pc;
-        this.username = username;
-        this.password = password;
-        upkey = new UserPassKey(username, password);
-    }
+	PooledConnectionAndInfo(final PooledConnection pc, final String username, final String password) {
+		this.pooledConnection = pc;
+		this.username = username;
+		this.password = password;
+		upkey = new UserPassKey(username, password);
+	}
 
-    PooledConnection getPooledConnection() {
-        return pooledConnection;
-    }
+	PooledConnection getPooledConnection()
+	{
+		return pooledConnection;
+	}
 
-    UserPassKey getUserPassKey() {
-        return upkey;
-    }
+	UserPassKey getUserPassKey()
+	{
+		return upkey;
+	}
 
-    /**
-     * Get the value of password.
-     * @return value of password.
-     */
-    String getPassword() {
-        return password;
-    }
+	/**
+	 * Get the value of password.
+	 * 
+	 * @return value of password.
+	 */
+	String getPassword()
+	{
+		return password;
+	}
 
-    /**
-     * Get the value of username.
-     * @return value of username.
-     */
-    String getUsername() {
-        return username;
-    }
+	/**
+	 * Get the value of username.
+	 * 
+	 * @return value of username.
+	 */
+	String getUsername()
+	{
+		return username;
+	}
 }

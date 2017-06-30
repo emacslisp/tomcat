@@ -20,81 +20,79 @@ import org.apache.tomcat.util.digester.Digester;
 import org.apache.tomcat.util.digester.RuleSetBase;
 
 /**
- * <p><strong>RuleSet</strong> for processing the contents of a
- * CredentialHandler definition element.  This <code>RuleSet</code> supports
- * CredentialHandler such as the <code>NestedCredentialHandler</code> that used
- * nested CredentialHandlers.</p>
+ * <p>
+ * <strong>RuleSet</strong> for processing the contents of a CredentialHandler
+ * definition element. This <code>RuleSet</code> supports CredentialHandler such
+ * as the <code>NestedCredentialHandler</code> that used nested
+ * CredentialHandlers.
+ * </p>
  */
 public class CredentialHandlerRuleSet extends RuleSetBase {
 
+	private static final int MAX_NESTED_LEVELS = Integer
+			.getInteger("org.apache.catalina.startup.CredentialHandlerRuleSet.MAX_NESTED_LEVELS", 3).intValue();
 
-    private static final int MAX_NESTED_LEVELS = Integer.getInteger(
-            "org.apache.catalina.startup.CredentialHandlerRuleSet.MAX_NESTED_LEVELS",
-            3).intValue();
+	// ----------------------------------------------------- Instance Variables
 
-    // ----------------------------------------------------- Instance Variables
+	/**
+	 * The matching pattern prefix to use for recognizing our elements.
+	 */
+	protected final String prefix;
 
+	// ------------------------------------------------------------ Constructor
 
-    /**
-     * The matching pattern prefix to use for recognizing our elements.
-     */
-    protected final String prefix;
+	/**
+	 * Construct an instance of this <code>RuleSet</code> with the default
+	 * matching pattern prefix.
+	 */
+	public CredentialHandlerRuleSet() {
+		this("");
+	}
 
+	/**
+	 * Construct an instance of this <code>RuleSet</code> with the specified
+	 * matching pattern prefix.
+	 *
+	 * @param prefix
+	 *            Prefix for matching pattern rules (including the trailing
+	 *            slash character)
+	 */
+	public CredentialHandlerRuleSet(String prefix) {
+		this.namespaceURI = null;
+		this.prefix = prefix;
+	}
 
-    // ------------------------------------------------------------ Constructor
+	// --------------------------------------------------------- Public Methods
 
+	/**
+	 * <p>
+	 * Add the set of Rule instances defined in this RuleSet to the specified
+	 * <code>Digester</code> instance, associating them with our namespace URI
+	 * (if any). This method should only be called by a Digester instance.
+	 * </p>
+	 *
+	 * @param digester
+	 *            Digester instance to which the new Rule instances should be
+	 *            added.
+	 */
+	@Override
+	public void addRuleInstances(Digester digester)
+	{
+		StringBuilder pattern = new StringBuilder(prefix);
+		for (int i = 0; i < MAX_NESTED_LEVELS; i++) {
+			if (i > 0) {
+				pattern.append('/');
+			}
+			pattern.append("CredentialHandler");
+			addRuleInstances(digester, pattern.toString(), i == 0 ? "setCredentialHandler" : "addCredentialHandler");
+		}
+	}
 
-    /**
-     * Construct an instance of this <code>RuleSet</code> with the default
-     * matching pattern prefix.
-     */
-    public CredentialHandlerRuleSet() {
-        this("");
-    }
-
-
-    /**
-     * Construct an instance of this <code>RuleSet</code> with the specified
-     * matching pattern prefix.
-     *
-     * @param prefix Prefix for matching pattern rules (including the
-     *  trailing slash character)
-     */
-    public CredentialHandlerRuleSet(String prefix) {
-        this.namespaceURI = null;
-        this.prefix = prefix;
-    }
-
-
-    // --------------------------------------------------------- Public Methods
-
-
-    /**
-     * <p>Add the set of Rule instances defined in this RuleSet to the
-     * specified <code>Digester</code> instance, associating them with
-     * our namespace URI (if any).  This method should only be called
-     * by a Digester instance.</p>
-     *
-     * @param digester Digester instance to which the new Rule instances
-     *  should be added.
-     */
-    @Override
-    public void addRuleInstances(Digester digester) {
-        StringBuilder pattern = new StringBuilder(prefix);
-        for (int i = 0; i < MAX_NESTED_LEVELS; i++) {
-            if (i > 0) {
-                pattern.append('/');
-            }
-            pattern.append("CredentialHandler");
-            addRuleInstances(digester, pattern.toString(), i == 0 ? "setCredentialHandler"
-                    : "addCredentialHandler");
-        }
-    }
-
-    private void addRuleInstances(Digester digester, String pattern, String methodName) {
-        digester.addObjectCreate(pattern, null /* MUST be specified in the element */,
-                "className");
-        digester.addSetProperties(pattern);
-        digester.addSetNext(pattern, methodName, "org.apache.catalina.CredentialHandler");
-    }
+	private void addRuleInstances(Digester digester, String pattern, String methodName)
+	{
+		digester.addObjectCreate(pattern,
+				null /* MUST be specified in the element */, "className");
+		digester.addSetProperties(pattern);
+		digester.addSetNext(pattern, methodName, "org.apache.catalina.CredentialHandler");
+	}
 }

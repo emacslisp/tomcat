@@ -27,70 +27,69 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.buf.UriUtil;
 
 /**
- * Represents a single resource (file or directory) that is located within a
- * JAR that in turn is located in a WAR file.
+ * Represents a single resource (file or directory) that is located within a JAR
+ * that in turn is located in a WAR file.
  */
 public class JarWarResource extends AbstractArchiveResource {
 
-    private static final Log log = LogFactory.getLog(JarWarResource.class);
+	private static final Log log = LogFactory.getLog(JarWarResource.class);
 
-    private final String archivePath;
+	private final String archivePath;
 
-    public JarWarResource(AbstractArchiveResourceSet archiveResourceSet, String webAppPath,
-            String baseUrl, JarEntry jarEntry, String archivePath) {
+	public JarWarResource(AbstractArchiveResourceSet archiveResourceSet, String webAppPath, String baseUrl,
+			JarEntry jarEntry, String archivePath) {
 
-        super(archiveResourceSet, webAppPath,
-                "jar:war:" + baseUrl + UriUtil.getWarSeparator() + archivePath + "!/",
-                jarEntry, "war:" + baseUrl + UriUtil.getWarSeparator() + archivePath);
-        this.archivePath = archivePath;
-    }
+		super(archiveResourceSet, webAppPath, "jar:war:" + baseUrl + UriUtil.getWarSeparator() + archivePath + "!/",
+				jarEntry, "war:" + baseUrl + UriUtil.getWarSeparator() + archivePath);
+		this.archivePath = archivePath;
+	}
 
-    @Override
-    protected JarInputStreamWrapper getJarInputStreamWrapper() {
-        JarFile warFile = null;
-        JarInputStream jarIs = null;
-        JarEntry entry = null;
-        try {
-            warFile = getArchiveResourceSet().openJarFile();
-            JarEntry jarFileInWar = warFile.getJarEntry(archivePath);
-            InputStream isInWar = warFile.getInputStream(jarFileInWar);
+	@Override
+	protected JarInputStreamWrapper getJarInputStreamWrapper()
+	{
+		JarFile warFile = null;
+		JarInputStream jarIs = null;
+		JarEntry entry = null;
+		try {
+			warFile = getArchiveResourceSet().openJarFile();
+			JarEntry jarFileInWar = warFile.getJarEntry(archivePath);
+			InputStream isInWar = warFile.getInputStream(jarFileInWar);
 
-            jarIs = new JarInputStream(isInWar);
-            entry = jarIs.getNextJarEntry();
-            while (entry != null &&
-                    !entry.getName().equals(getResource().getName())) {
-                entry = jarIs.getNextJarEntry();
-            }
+			jarIs = new JarInputStream(isInWar);
+			entry = jarIs.getNextJarEntry();
+			while (entry != null && !entry.getName().equals(getResource().getName())) {
+				entry = jarIs.getNextJarEntry();
+			}
 
-            if (entry == null) {
-                return null;
-            }
+			if (entry == null) {
+				return null;
+			}
 
-            return new JarInputStreamWrapper(entry, jarIs);
-        } catch (IOException e) {
-            if (log.isDebugEnabled()) {
-                log.debug(sm.getString("jarResource.getInputStreamFail",
-                        getResource().getName(), getBaseUrl()), e);
-            }
-            return null;
-        } finally {
-            if (entry == null) {
-                if (jarIs != null) {
-                    try {
-                        jarIs.close();
-                    } catch (IOException ioe) {
-                        // Ignore
-                    }
-                }
-                if (warFile != null) {
-                    getArchiveResourceSet().closeJarFile();
-                }
-            }
-        }
-    }
+			return new JarInputStreamWrapper(entry, jarIs);
+		} catch (IOException e) {
+			if (log.isDebugEnabled()) {
+				log.debug(sm.getString("jarResource.getInputStreamFail", getResource().getName(), getBaseUrl()), e);
+			}
+			return null;
+		} finally {
+			if (entry == null) {
+				if (jarIs != null) {
+					try {
+						jarIs.close();
+					} catch (IOException ioe) {
+						// Ignore
+					}
+				}
+				if (warFile != null) {
+					getArchiveResourceSet().closeJarFile();
+				}
+			}
+		}
+	}
 
-    @Override
-    protected Log getLog() {
-        return log;
-    }
+	@Override
+	protected Log getLog()
+	{
+		return log;
+	}
 }

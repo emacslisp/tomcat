@@ -24,31 +24,33 @@ import java.util.List;
 import org.apache.el.lang.EvaluationContext;
 
 public final class AstMethodParameters extends SimpleNode {
-    public AstMethodParameters(int id) {
-        super(id);
-    }
+	public AstMethodParameters(int id) {
+		super(id);
+	}
 
-    public Object[] getParameters(EvaluationContext ctx) {
-        List<Object> params = new ArrayList<>();
-        for (int i = 0; i < this.jjtGetNumChildren(); i++) {
-            params.add(this.jjtGetChild(i).getValue(ctx));
-        }
-        return params.toArray(new Object[params.size()]);
-    }
+	public Object[] getParameters(EvaluationContext ctx)
+	{
+		List<Object> params = new ArrayList<>();
+		for (int i = 0; i < this.jjtGetNumChildren(); i++) {
+			params.add(this.jjtGetChild(i).getValue(ctx));
+		}
+		return params.toArray(new Object[params.size()]);
+	}
 
-    @Override
-    public String toString() {
-        // Purely for debug purposes. May not be complete or correct. Certainly
-        // is not efficient. Be sure not to call this from 'real' code.
-        StringBuilder result = new StringBuilder();
-        result.append('(');
-        if (children != null) {
-            for (Node n : children) {
-                result.append(n.toString());
-                result.append(',');
-            }
-        }
-        result.append(')');
-        return result.toString();
-    }
+	@Override
+	public String toString()
+	{
+		// Purely for debug purposes. May not be complete or correct. Certainly
+		// is not efficient. Be sure not to call this from 'real' code.
+		StringBuilder result = new StringBuilder();
+		result.append('(');
+		if (children != null) {
+			for (Node n : children) {
+				result.append(n.toString());
+				result.append(',');
+			}
+		}
+		result.append(')');
+		return result.toString();
+	}
 }

@@ -32,216 +32,217 @@ import org.apache.tomcat.dbcp.pool2.impl.GenericKeyedObjectPool;
 import org.apache.tomcat.dbcp.pool2.impl.GenericKeyedObjectPoolConfig;
 
 /**
- * <p>A pooling <code>DataSource</code> appropriate for deployment within
- * J2EE environment.  There are many configuration options, most of which are
- * defined in the parent class. All users (based on username) share a single
- * maximum number of Connections in this datasource.</p>
+ * <p>
+ * A pooling <code>DataSource</code> appropriate for deployment within J2EE
+ * environment. There are many configuration options, most of which are defined
+ * in the parent class. All users (based on username) share a single maximum
+ * number of Connections in this datasource.
+ * </p>
  *
- * <p>User passwords can be changed without re-initializing the datasource.
- * When a <code>getConnection(username, password)</code> request is processed
- * with a password that is different from those used to create connections in the
- * pool associated with <code>username</code>, an attempt is made to create a
- * new connection using the supplied password and if this succeeds, idle connections
+ * <p>
+ * User passwords can be changed without re-initializing the datasource. When a
+ * <code>getConnection(username, password)</code> request is processed with a
+ * password that is different from those used to create connections in the pool
+ * associated with <code>username</code>, an attempt is made to create a new
+ * connection using the supplied password and if this succeeds, idle connections
  * created using the old password are destroyed and new connections are created
- * using the new password.</p>
+ * using the new password.
+ * </p>
  *
  * @author John D. McNally
  * @since 2.0
  */
 public class SharedPoolDataSource extends InstanceKeyDataSource {
 
-    private static final long serialVersionUID = -1458539734480586454L;
+	private static final long serialVersionUID = -1458539734480586454L;
 
-    // Pool properties
-    private int maxTotal = GenericKeyedObjectPoolConfig.DEFAULT_MAX_TOTAL;
+	// Pool properties
+	private int maxTotal = GenericKeyedObjectPoolConfig.DEFAULT_MAX_TOTAL;
 
+	private transient KeyedObjectPool<UserPassKey, PooledConnectionAndInfo> pool = null;
+	private transient KeyedCPDSConnectionFactory factory = null;
 
-    private transient KeyedObjectPool<UserPassKey,PooledConnectionAndInfo> pool = null;
-    private transient KeyedCPDSConnectionFactory factory = null;
+	/**
+	 * Default no-arg constructor for Serialization
+	 */
+	public SharedPoolDataSource() {
+	}
 
-    /**
-     * Default no-arg constructor for Serialization
-     */
-    public SharedPoolDataSource() {
-    }
+	/**
+	 * Close pool being maintained by this datasource.
+	 */
+	@Override
+	public void close() throws Exception
+	{
+		if (pool != null) {
+			pool.close();
+		}
+		InstanceKeyDataSourceFactory.removeInstance(getInstanceKey());
+	}
 
-    /**
-     * Close pool being maintained by this datasource.
-     */
-    @Override
-    public void close() throws Exception {
-        if (pool != null) {
-            pool.close();
-        }
-        InstanceKeyDataSourceFactory.removeInstance(getInstanceKey());
-    }
+	// -------------------------------------------------------------------
+	// Properties
 
+	/**
+	 * @return {@link GenericKeyedObjectPool#getMaxTotal()} for this pool.
+	 */
+	public int getMaxTotal()
+	{
+		return this.maxTotal;
+	}
 
-    // -------------------------------------------------------------------
-    // Properties
+	/**
+	 * Set {@link GenericKeyedObjectPool#getMaxTotal()} for this pool.
+	 * 
+	 * @param maxTotal
+	 *            The max total value
+	 */
+	public void setMaxTotal(final int maxTotal)
+	{
+		assertInitializationAllowed();
+		this.maxTotal = maxTotal;
+	}
 
-    /**
-     * @return {@link GenericKeyedObjectPool#getMaxTotal()} for this pool.
-     */
-    public int getMaxTotal() {
-        return this.maxTotal;
-    }
+	// ----------------------------------------------------------------------
+	// Instrumentation Methods
 
-    /**
-     * Set {@link GenericKeyedObjectPool#getMaxTotal()} for this pool.
-     * @param maxTotal The max total value
-     */
-    public void setMaxTotal(final int maxTotal) {
-        assertInitializationAllowed();
-        this.maxTotal = maxTotal;
-    }
+	/**
+	 * @return the number of active connections in the pool.
+	 */
+	public int getNumActive()
+	{
+		return pool == null ? 0 : pool.getNumActive();
+	}
 
+	/**
+	 * @return the number of idle connections in the pool.
+	 */
+	public int getNumIdle()
+	{
+		return pool == null ? 0 : pool.getNumIdle();
+	}
 
-    // ----------------------------------------------------------------------
-    // Instrumentation Methods
+	// ----------------------------------------------------------------------
+	// Inherited abstract methods
 
-    /**
-     * @return the number of active connections in the pool.
-     */
-    public int getNumActive() {
-        return pool == null ? 0 : pool.getNumActive();
-    }
+	@Override
+	protected PooledConnectionAndInfo getPooledConnectionAndInfo(final String username, final String password)
+			throws SQLException
+	{
 
-    /**
-     * @return the number of idle connections in the pool.
-     */
-    public int getNumIdle() {
-        return pool == null ? 0 : pool.getNumIdle();
-    }
+		synchronized (this) {
+			if (pool == null) {
+				try {
+					registerPool(username, password);
+				} catch (final NamingException e) {
+					throw new SQLException("RegisterPool failed", e);
+				}
+			}
+		}
 
-    // ----------------------------------------------------------------------
-    // Inherited abstract methods
+		PooledConnectionAndInfo info = null;
 
-    @Override
-    protected PooledConnectionAndInfo
-        getPooledConnectionAndInfo(final String username, final String password)
-        throws SQLException {
+		final UserPassKey key = new UserPassKey(username, password);
 
-        synchronized(this) {
-            if (pool == null) {
-                try {
-                    registerPool(username, password);
-                } catch (final NamingException e) {
-                    throw new SQLException("RegisterPool failed", e);
-                }
-            }
-        }
+		try {
+			info = pool.borrowObject(key);
+		} catch (final Exception e) {
+			throw new SQLException("Could not retrieve connection info from pool", e);
+		}
+		return info;
+	}
 
-        PooledConnectionAndInfo info = null;
+	@Override
+	protected PooledConnectionManager getConnectionManager(final UserPassKey upkey)
+	{
+		return factory;
+	}
 
-        final UserPassKey key = new UserPassKey(username, password);
+	/**
+	 * @return a <code>SharedPoolDataSource</code> {@link Reference}.
+	 * @throws NamingException
+	 *             Should not occur
+	 */
+	@Override
+	public Reference getReference() throws NamingException
+	{
+		final Reference ref = new Reference(getClass().getName(), SharedPoolDataSourceFactory.class.getName(), null);
+		ref.add(new StringRefAddr("instanceKey", getInstanceKey()));
+		return ref;
+	}
 
-        try {
-            info = pool.borrowObject(key);
-        }
-        catch (final Exception e) {
-            throw new SQLException(
-                    "Could not retrieve connection info from pool", e);
-        }
-        return info;
-    }
+	private void registerPool(final String username, final String password) throws NamingException, SQLException
+	{
 
-    @Override
-    protected PooledConnectionManager getConnectionManager(final UserPassKey upkey)  {
-        return factory;
-    }
+		final ConnectionPoolDataSource cpds = testCPDS(username, password);
 
-    /**
-     * @return a <code>SharedPoolDataSource</code> {@link Reference}.
-     * @throws NamingException Should not occur
-     */
-    @Override
-    public Reference getReference() throws NamingException {
-        final Reference ref = new Reference(getClass().getName(),
-            SharedPoolDataSourceFactory.class.getName(), null);
-        ref.add(new StringRefAddr("instanceKey", getInstanceKey()));
-        return ref;
-    }
+		// Create an object pool to contain our PooledConnections
+		factory = new KeyedCPDSConnectionFactory(cpds, getValidationQuery(), getValidationQueryTimeout(),
+				isRollbackAfterValidation());
+		factory.setMaxConnLifetimeMillis(getMaxConnLifetimeMillis());
 
-    private void registerPool(final String username, final String password)
-            throws NamingException, SQLException {
+		final GenericKeyedObjectPoolConfig config = new GenericKeyedObjectPoolConfig();
+		config.setBlockWhenExhausted(getDefaultBlockWhenExhausted());
+		config.setEvictionPolicyClassName(getDefaultEvictionPolicyClassName());
+		config.setLifo(getDefaultLifo());
+		config.setMaxIdlePerKey(getDefaultMaxIdle());
+		config.setMaxTotal(getMaxTotal());
+		config.setMaxTotalPerKey(getDefaultMaxTotal());
+		config.setMaxWaitMillis(getDefaultMaxWaitMillis());
+		config.setMinEvictableIdleTimeMillis(getDefaultMinEvictableIdleTimeMillis());
+		config.setMinIdlePerKey(getDefaultMinIdle());
+		config.setNumTestsPerEvictionRun(getDefaultNumTestsPerEvictionRun());
+		config.setSoftMinEvictableIdleTimeMillis(getDefaultSoftMinEvictableIdleTimeMillis());
+		config.setTestOnCreate(getDefaultTestOnCreate());
+		config.setTestOnBorrow(getDefaultTestOnBorrow());
+		config.setTestOnReturn(getDefaultTestOnReturn());
+		config.setTestWhileIdle(getDefaultTestWhileIdle());
+		config.setTimeBetweenEvictionRunsMillis(getDefaultTimeBetweenEvictionRunsMillis());
 
-        final ConnectionPoolDataSource cpds = testCPDS(username, password);
+		final KeyedObjectPool<UserPassKey, PooledConnectionAndInfo> tmpPool = new GenericKeyedObjectPool<>(factory,
+				config);
+		factory.setPool(tmpPool);
+		pool = tmpPool;
+	}
 
-        // Create an object pool to contain our PooledConnections
-        factory = new KeyedCPDSConnectionFactory(cpds, getValidationQuery(),
-                getValidationQueryTimeout(), isRollbackAfterValidation());
-        factory.setMaxConnLifetimeMillis(getMaxConnLifetimeMillis());
+	@Override
+	protected void setupDefaults(final Connection con, final String username) throws SQLException
+	{
+		final Boolean defaultAutoCommit = isDefaultAutoCommit();
+		if (defaultAutoCommit != null && con.getAutoCommit() != defaultAutoCommit.booleanValue()) {
+			con.setAutoCommit(defaultAutoCommit.booleanValue());
+		}
 
-        final GenericKeyedObjectPoolConfig config =
-                new GenericKeyedObjectPoolConfig();
-        config.setBlockWhenExhausted(getDefaultBlockWhenExhausted());
-        config.setEvictionPolicyClassName(getDefaultEvictionPolicyClassName());
-        config.setLifo(getDefaultLifo());
-        config.setMaxIdlePerKey(getDefaultMaxIdle());
-        config.setMaxTotal(getMaxTotal());
-        config.setMaxTotalPerKey(getDefaultMaxTotal());
-        config.setMaxWaitMillis(getDefaultMaxWaitMillis());
-        config.setMinEvictableIdleTimeMillis(
-                getDefaultMinEvictableIdleTimeMillis());
-        config.setMinIdlePerKey(getDefaultMinIdle());
-        config.setNumTestsPerEvictionRun(getDefaultNumTestsPerEvictionRun());
-        config.setSoftMinEvictableIdleTimeMillis(
-                getDefaultSoftMinEvictableIdleTimeMillis());
-        config.setTestOnCreate(getDefaultTestOnCreate());
-        config.setTestOnBorrow(getDefaultTestOnBorrow());
-        config.setTestOnReturn(getDefaultTestOnReturn());
-        config.setTestWhileIdle(getDefaultTestWhileIdle());
-        config.setTimeBetweenEvictionRunsMillis(
-                getDefaultTimeBetweenEvictionRunsMillis());
+		final int defaultTransactionIsolation = getDefaultTransactionIsolation();
+		if (defaultTransactionIsolation != UNKNOWN_TRANSACTIONISOLATION) {
+			con.setTransactionIsolation(defaultTransactionIsolation);
+		}
 
-        final KeyedObjectPool<UserPassKey,PooledConnectionAndInfo> tmpPool =
-                new GenericKeyedObjectPool<>(factory, config);
-        factory.setPool(tmpPool);
-        pool = tmpPool;
-    }
+		final Boolean defaultReadOnly = isDefaultReadOnly();
+		if (defaultReadOnly != null && con.isReadOnly() != defaultReadOnly.booleanValue()) {
+			con.setReadOnly(defaultReadOnly.booleanValue());
+		}
+	}
 
-    @Override
-    protected void setupDefaults(final Connection con, final String username) throws SQLException {
-        final Boolean defaultAutoCommit = isDefaultAutoCommit();
-        if (defaultAutoCommit != null &&
-                con.getAutoCommit() != defaultAutoCommit.booleanValue()) {
-            con.setAutoCommit(defaultAutoCommit.booleanValue());
-        }
-
-        final int defaultTransactionIsolation = getDefaultTransactionIsolation();
-        if (defaultTransactionIsolation != UNKNOWN_TRANSACTIONISOLATION) {
-            con.setTransactionIsolation(defaultTransactionIsolation);
-        }
-
-        final Boolean defaultReadOnly = isDefaultReadOnly();
-        if (defaultReadOnly != null &&
-                con.isReadOnly() != defaultReadOnly.booleanValue()) {
-            con.setReadOnly(defaultReadOnly.booleanValue());
-        }
-    }
-
-    /**
-     * Supports Serialization interface.
-     *
-     * @param in a <code>java.io.ObjectInputStream</code> value
-     * @throws IOException if an error occurs
-     * @throws ClassNotFoundException if an error occurs
-     */
-    private void readObject(final ObjectInputStream in)
-        throws IOException, ClassNotFoundException {
-        try
-        {
-            in.defaultReadObject();
-            final SharedPoolDataSource oldDS = (SharedPoolDataSource)
-                new SharedPoolDataSourceFactory()
-                    .getObjectInstance(getReference(), null, null, null);
-            this.pool = oldDS.pool;
-        }
-        catch (final NamingException e)
-        {
-            throw new IOException("NamingException: " + e);
-        }
-    }
+	/**
+	 * Supports Serialization interface.
+	 *
+	 * @param in
+	 *            a <code>java.io.ObjectInputStream</code> value
+	 * @throws IOException
+	 *             if an error occurs
+	 * @throws ClassNotFoundException
+	 *             if an error occurs
+	 */
+	private void readObject(final ObjectInputStream in) throws IOException, ClassNotFoundException
+	{
+		try {
+			in.defaultReadObject();
+			final SharedPoolDataSource oldDS = (SharedPoolDataSource) new SharedPoolDataSourceFactory()
+					.getObjectInstance(getReference(), null, null, null);
+			this.pool = oldDS.pool;
+		} catch (final NamingException e) {
+			throw new IOException("NamingException: " + e);
+		}
+	}
 }
-

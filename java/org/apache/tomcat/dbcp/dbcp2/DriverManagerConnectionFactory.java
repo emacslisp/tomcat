@@ -16,6 +16,7 @@
  */
 
 package org.apache.tomcat.dbcp.dbcp2;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -31,66 +32,75 @@ import java.util.Properties;
  */
 public class DriverManagerConnectionFactory implements ConnectionFactory {
 
-    static {
-        // Related to DBCP-212
-        // Driver manager does not sync loading of drivers that use the service
-        // provider interface. This will cause issues is multi-threaded
-        // environments. This hack makes sure the drivers are loaded before
-        // DBCP tries to use them.
-        DriverManager.getDrivers();
-    }
+	static {
+		// Related to DBCP-212
+		// Driver manager does not sync loading of drivers that use the service
+		// provider interface. This will cause issues is multi-threaded
+		// environments. This hack makes sure the drivers are loaded before
+		// DBCP tries to use them.
+		DriverManager.getDrivers();
+	}
 
+	/**
+	 * Constructor for DriverManagerConnectionFactory.
+	 * 
+	 * @param connectUri
+	 *            a database url of the form
+	 *            <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
+	 * @since 2.2
+	 */
+	public DriverManagerConnectionFactory(final String connectUri) {
+		_connectUri = connectUri;
+		_props = new Properties();
+	}
 
-    /**
-     * Constructor for DriverManagerConnectionFactory.
-     * @param connectUri a database url of the form
-     * <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
-     * @since 2.2
-     */
-    public DriverManagerConnectionFactory(final String connectUri) {
-        _connectUri = connectUri;
-        _props = new Properties();
-    }
+	/**
+	 * Constructor for DriverManagerConnectionFactory.
+	 * 
+	 * @param connectUri
+	 *            a database url of the form
+	 *            <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
+	 * @param props
+	 *            a list of arbitrary string tag/value pairs as connection
+	 *            arguments; normally at least a "user" and "password" property
+	 *            should be included.
+	 */
+	public DriverManagerConnectionFactory(final String connectUri, final Properties props) {
+		_connectUri = connectUri;
+		_props = props;
+	}
 
-    /**
-     * Constructor for DriverManagerConnectionFactory.
-     * @param connectUri a database url of the form
-     * <code> jdbc:<em>subprotocol</em>:<em>subname</em></code>
-     * @param props a list of arbitrary string tag/value pairs as
-     * connection arguments; normally at least a "user" and "password"
-     * property should be included.
-     */
-    public DriverManagerConnectionFactory(final String connectUri, final Properties props) {
-        _connectUri = connectUri;
-        _props = props;
-    }
+	/**
+	 * Constructor for DriverManagerConnectionFactory.
+	 * 
+	 * @param connectUri
+	 *            a database url of the form
+	 *            <code>jdbc:<em>subprotocol</em>:<em>subname</em></code>
+	 * @param uname
+	 *            the database user
+	 * @param passwd
+	 *            the user's password
+	 */
+	public DriverManagerConnectionFactory(final String connectUri, final String uname, final String passwd) {
+		_connectUri = connectUri;
+		_uname = uname;
+		_passwd = passwd;
+	}
 
-    /**
-     * Constructor for DriverManagerConnectionFactory.
-     * @param connectUri a database url of the form
-     * <code>jdbc:<em>subprotocol</em>:<em>subname</em></code>
-     * @param uname the database user
-     * @param passwd the user's password
-     */
-    public DriverManagerConnectionFactory(final String connectUri, final String uname, final String passwd) {
-        _connectUri = connectUri;
-        _uname = uname;
-        _passwd = passwd;
-    }
+	@Override
+	public Connection createConnection() throws SQLException
+	{
+		if (null == _props) {
+			if (_uname == null && _passwd == null) {
+				return DriverManager.getConnection(_connectUri);
+			}
+			return DriverManager.getConnection(_connectUri, _uname, _passwd);
+		}
+		return DriverManager.getConnection(_connectUri, _props);
+	}
 
-    @Override
-    public Connection createConnection() throws SQLException {
-        if(null == _props) {
-            if(_uname == null && _passwd == null) {
-                return DriverManager.getConnection(_connectUri);
-            }
-            return DriverManager.getConnection(_connectUri,_uname,_passwd);
-        }
-        return DriverManager.getConnection(_connectUri,_props);
-    }
-
-    private String _connectUri = null;
-    private String _uname = null;
-    private String _passwd = null;
-    private Properties _props = null;
+	private String _connectUri = null;
+	private String _uname = null;
+	private String _passwd = null;
+	private Properties _props = null;
 }

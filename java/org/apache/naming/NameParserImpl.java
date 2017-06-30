@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.naming;
 
 import javax.naming.CompositeName;
@@ -28,29 +27,24 @@ import javax.naming.NamingException;
  *
  * @author Remy Maucherat
  */
-public class NameParserImpl
-    implements NameParser {
+public class NameParserImpl implements NameParser {
 
+	// ----------------------------------------------------- Instance Variables
 
-    // ----------------------------------------------------- Instance Variables
+	// ----------------------------------------------------- NameParser Methods
 
-
-    // ----------------------------------------------------- NameParser Methods
-
-
-    /**
-     * Parses a name into its components.
-     *
-     * @param name The non-null string name to parse
-     * @return A non-null parsed form of the name using the naming convention
-     * of this parser.
-     */
-    @Override
-    public Name parse(String name)
-        throws NamingException {
-        return new CompositeName(name);
-    }
-
+	/**
+	 * Parses a name into its components.
+	 *
+	 * @param name
+	 *            The non-null string name to parse
+	 * @return A non-null parsed form of the name using the naming convention of
+	 *         this parser.
+	 */
+	@Override
+	public Name parse(String name) throws NamingException
+	{
+		return new CompositeName(name);
+	}
 
 }
-

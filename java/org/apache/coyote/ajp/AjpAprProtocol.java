@@ -20,43 +20,50 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.net.AprEndpoint;
 
-
 /**
  * This the APR/native based protocol handler implementation for AJP.
  */
 public class AjpAprProtocol extends AbstractAjpProtocol<Long> {
 
-    private static final Log log = LogFactory.getLog(AjpAprProtocol.class);
+	private static final Log log = LogFactory.getLog(AjpAprProtocol.class);
 
-    @Override
-    protected Log getLog() { return log; }
+	@Override
+	protected Log getLog()
+	{
+		return log;
+	}
 
+	@Override
+	public boolean isAprRequired()
+	{
+		// Override since this protocol implementation requires the APR/native
+		// library
+		return true;
+	}
 
-    @Override
-    public boolean isAprRequired() {
-        // Override since this protocol implementation requires the APR/native
-        // library
-        return true;
-    }
+	// ------------------------------------------------------------ Constructor
 
+	public AjpAprProtocol() {
+		super(new AprEndpoint());
+	}
 
-    // ------------------------------------------------------------ Constructor
+	// --------------------------------------------------------- Public Methods
 
-    public AjpAprProtocol() {
-        super(new AprEndpoint());
-    }
+	public int getPollTime()
+	{
+		return ((AprEndpoint) getEndpoint()).getPollTime();
+	}
 
+	public void setPollTime(int pollTime)
+	{
+		((AprEndpoint) getEndpoint()).setPollTime(pollTime);
+	}
 
-    // --------------------------------------------------------- Public Methods
+	// ----------------------------------------------------- JMX related methods
 
-    public int getPollTime() { return ((AprEndpoint)getEndpoint()).getPollTime(); }
-    public void setPollTime(int pollTime) { ((AprEndpoint)getEndpoint()).setPollTime(pollTime); }
-
-
-    // ----------------------------------------------------- JMX related methods
-
-    @Override
-    protected String getNamePrefix() {
-        return "ajp-apr";
-    }
+	@Override
+	protected String getNamePrefix()
+	{
+		return "ajp-apr";
+	}
 }

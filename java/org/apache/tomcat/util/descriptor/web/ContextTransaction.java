@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.tomcat.util.descriptor.web;
 
 import java.io.Serializable;
@@ -23,69 +22,77 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-
 /**
- * Representation of an application resource reference, as represented in
- * an <code>&lt;res-env-refy&gt;</code> element in the deployment descriptor.
+ * Representation of an application resource reference, as represented in an
+ * <code>&lt;res-env-refy&gt;</code> element in the deployment descriptor.
  *
  * @author Craig R. McClanahan
  */
 public class ContextTransaction implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    // ------------------------------------------------------------- Properties
+	// ------------------------------------------------------------- Properties
 
+	/**
+	 * Holder for our configured properties.
+	 */
+	private final Map<String, Object> properties = new HashMap<>();
 
-    /**
-     * Holder for our configured properties.
-     */
-    private final Map<String, Object> properties = new HashMap<>();
+	/**
+	 * @param name
+	 *            The property name
+	 * @return a configured property.
+	 */
+	public Object getProperty(String name)
+	{
+		return properties.get(name);
+	}
 
-    /**
-     * @param name The property name
-     * @return a configured property.
-     */
-    public Object getProperty(String name) {
-        return properties.get(name);
-    }
+	/**
+	 * Set a configured property.
+	 * 
+	 * @param name
+	 *            The property name
+	 * @param value
+	 *            The property value
+	 */
+	public void setProperty(String name, Object value)
+	{
+		properties.put(name, value);
+	}
 
-    /**
-     * Set a configured property.
-     * @param name The property name
-     * @param value The property value
-     */
-    public void setProperty(String name, Object value) {
-        properties.put(name, value);
-    }
+	/**
+	 * Remove a configured property.
+	 * 
+	 * @param name
+	 *            The property name
+	 */
+	public void removeProperty(String name)
+	{
+		properties.remove(name);
+	}
 
-    /**
-     * Remove a configured property.
-     * @param name The property name
-     */
-    public void removeProperty(String name) {
-        properties.remove(name);
-    }
+	/**
+	 * List properties.
+	 * 
+	 * @return the property names iterator
+	 */
+	public Iterator<String> listProperties()
+	{
+		return properties.keySet().iterator();
+	}
 
-    /**
-     * List properties.
-     * @return the property names iterator
-     */
-    public Iterator<String> listProperties() {
-        return properties.keySet().iterator();
-    }
+	// --------------------------------------------------------- Public Methods
 
-
-    // --------------------------------------------------------- Public Methods
-
-
-    /**
-     * Return a String representation of this object.
-     */
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("Transaction[");
-        sb.append("]");
-        return sb.toString();
-    }
+	/**
+	 * Return a String representation of this object.
+	 */
+	@Override
+	public String toString()
+	{
+		StringBuilder sb = new StringBuilder("Transaction[");
+		sb.append("]");
+		return sb.toString();
+	}
 }

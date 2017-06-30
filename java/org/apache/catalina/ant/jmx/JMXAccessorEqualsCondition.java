@@ -21,6 +21,7 @@ import org.apache.tools.ant.BuildException;
 /**
  *
  * Definition
+ * 
  * <pre>
  *   &lt;path id="catalina_ant"&gt;
  *       &lt;fileset dir="${catalina.home}/server/lib"&gt;
@@ -35,6 +36,7 @@ import org.apache.tools.ant.BuildException;
  * </pre>
  *
  * usage: Wait for start backup node
+ * 
  * <pre>
  *     &lt;target name="wait"&gt;
  *        &lt;waitfor maxwait="${maxwait}" maxwaitunit="second" timeoutproperty="server.timeout" &gt;
@@ -59,23 +61,22 @@ import org.apache.tools.ant.BuildException;
  */
 public class JMXAccessorEqualsCondition extends JMXAccessorConditionBase {
 
-    @Override
-    public boolean eval() {
-        String value = getValue();
+	@Override
+	public boolean eval()
+	{
+		String value = getValue();
 
-        if (value == null) {
-            throw new BuildException("value attribute is not set");
-        }
-        if (getName() == null || getAttribute() == null) {
-            throw new BuildException(
-                    "Must specify an MBean name and attribute for equals condition");
-        }
-        //FIXME check url or host/parameter
-        String jmxValue = accessJMXValue();
-        if (jmxValue != null) {
-            return jmxValue.equals(value);
-        }
-        return false;
-    }
+		if (value == null) {
+			throw new BuildException("value attribute is not set");
+		}
+		if (getName() == null || getAttribute() == null) {
+			throw new BuildException("Must specify an MBean name and attribute for equals condition");
+		}
+		// FIXME check url or host/parameter
+		String jmxValue = accessJMXValue();
+		if (jmxValue != null) {
+			return jmxValue.equals(value);
+		}
+		return false;
+	}
 }
-

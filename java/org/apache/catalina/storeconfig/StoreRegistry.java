@@ -49,172 +49,185 @@ import org.apache.tomcat.util.http.CookieProcessor;
  * Central StoreRegistry for all server.xml elements
  */
 public class StoreRegistry {
-    private static Log log = LogFactory.getLog(StoreRegistry.class);
+	private static Log log = LogFactory.getLog(StoreRegistry.class);
 
-    private Map<String, StoreDescription> descriptors = new HashMap<>();
+	private Map<String, StoreDescription> descriptors = new HashMap<>();
 
-    private String encoding = "UTF-8";
+	private String encoding = "UTF-8";
 
-    private String name;
+	private String name;
 
-    private String version;
+	private String version;
 
-    // Access Information
-    private static Class<?> interfaces[] = { CatalinaCluster.class,
-            ChannelSender.class, ChannelReceiver.class, Channel.class,
-            MembershipService.class, ClusterDeployer.class, Realm.class,
-            Manager.class, DirContext.class, LifecycleListener.class,
-            Valve.class, ClusterListener.class, MessageListener.class,
-            DataSender.class, ChannelInterceptor.class, Member.class,
-            WebResourceRoot.class, WebResourceSet.class,
-            CredentialHandler.class, UpgradeProtocol.class,
-            CookieProcessor.class };
+	// Access Information
+	private static Class<?> interfaces[] = { CatalinaCluster.class, ChannelSender.class, ChannelReceiver.class,
+			Channel.class, MembershipService.class, ClusterDeployer.class, Realm.class, Manager.class, DirContext.class,
+			LifecycleListener.class, Valve.class, ClusterListener.class, MessageListener.class, DataSender.class,
+			ChannelInterceptor.class, Member.class, WebResourceRoot.class, WebResourceSet.class,
+			CredentialHandler.class, UpgradeProtocol.class, CookieProcessor.class };
 
-    /**
-     * @return Returns the name.
-     */
-    public String getName() {
-        return name;
-    }
+	/**
+	 * @return Returns the name.
+	 */
+	public String getName()
+	{
+		return name;
+	}
 
-    /**
-     * @param name
-     *            The name to set.
-     */
-    public void setName(String name) {
-        this.name = name;
-    }
+	/**
+	 * @param name
+	 *            The name to set.
+	 */
+	public void setName(String name)
+	{
+		this.name = name;
+	}
 
-    /**
-     * @return Returns the version.
-     */
-    public String getVersion() {
-        return version;
-    }
+	/**
+	 * @return Returns the version.
+	 */
+	public String getVersion()
+	{
+		return version;
+	}
 
-    /**
-     * @param version
-     *            The version to set.
-     */
-    public void setVersion(String version) {
-        this.version = version;
-    }
+	/**
+	 * @param version
+	 *            The version to set.
+	 */
+	public void setVersion(String version)
+	{
+		this.version = version;
+	}
 
-    /**
-     * Find a description for id. Handle interface search when no direct match
-     * found.
-     *
-     * @param id The class name
-     * @return The description
-     */
-    public StoreDescription findDescription(String id) {
-        if (log.isDebugEnabled())
-            log.debug("search descriptor " + id);
-        StoreDescription desc = descriptors.get(id);
-        if (desc == null) {
-            Class<?> aClass = null;
-            try {
-                aClass = Class.forName(id, true, this.getClass()
-                        .getClassLoader());
-            } catch (ClassNotFoundException e) {
-                log.error("ClassName:" + id, e);
-            }
-            if (aClass != null) {
-                desc = descriptors.get(aClass.getName());
-                for (int i = 0; desc == null && i < interfaces.length; i++) {
-                    if (interfaces[i].isAssignableFrom(aClass)) {
-                        desc = descriptors.get(interfaces[i].getName());
-                    }
-                }
-            }
-        }
-        if (log.isDebugEnabled())
-            if (desc != null)
-                log.debug("find descriptor " + id + "#" + desc.getTag() + "#"
-                        + desc.getStoreFactoryClass());
-            else
-                log.debug(("Can't find descriptor for key " + id));
-        return desc;
-    }
+	/**
+	 * Find a description for id. Handle interface search when no direct match
+	 * found.
+	 *
+	 * @param id
+	 *            The class name
+	 * @return The description
+	 */
+	public StoreDescription findDescription(String id)
+	{
+		if (log.isDebugEnabled())
+			log.debug("search descriptor " + id);
+		StoreDescription desc = descriptors.get(id);
+		if (desc == null) {
+			Class<?> aClass = null;
+			try {
+				aClass = Class.forName(id, true, this.getClass().getClassLoader());
+			} catch (ClassNotFoundException e) {
+				log.error("ClassName:" + id, e);
+			}
+			if (aClass != null) {
+				desc = descriptors.get(aClass.getName());
+				for (int i = 0; desc == null && i < interfaces.length; i++) {
+					if (interfaces[i].isAssignableFrom(aClass)) {
+						desc = descriptors.get(interfaces[i].getName());
+					}
+				}
+			}
+		}
+		if (log.isDebugEnabled())
+			if (desc != null)
+				log.debug("find descriptor " + id + "#" + desc.getTag() + "#" + desc.getStoreFactoryClass());
+			else
+				log.debug(("Can't find descriptor for key " + id));
+		return desc;
+	}
 
-    /**
-     * Find Description by class.
-     *
-     * @param aClass The class
-     * @return The description
-     */
-    public StoreDescription findDescription(Class<?> aClass) {
-        return findDescription(aClass.getName());
-    }
+	/**
+	 * Find Description by class.
+	 *
+	 * @param aClass
+	 *            The class
+	 * @return The description
+	 */
+	public StoreDescription findDescription(Class<?> aClass)
+	{
+		return findDescription(aClass.getName());
+	}
 
-    /**
-     * Find factory from class name.
-     *
-     * @param aClassName The class name
-     * @return The factory
-     */
-    public IStoreFactory findStoreFactory(String aClassName) {
-        StoreDescription desc = findDescription(aClassName);
-        if (desc != null)
-            return desc.getStoreFactory();
-        else
-            return null;
+	/**
+	 * Find factory from class name.
+	 *
+	 * @param aClassName
+	 *            The class name
+	 * @return The factory
+	 */
+	public IStoreFactory findStoreFactory(String aClassName)
+	{
+		StoreDescription desc = findDescription(aClassName);
+		if (desc != null)
+			return desc.getStoreFactory();
+		else
+			return null;
 
-    }
+	}
 
-    /**
-     * Find factory from class.
-     *
-     * @param aClass The class
-     * @return The factory
-     */
-    public IStoreFactory findStoreFactory(Class<?> aClass) {
-        return findStoreFactory(aClass.getName());
-    }
+	/**
+	 * Find factory from class.
+	 *
+	 * @param aClass
+	 *            The class
+	 * @return The factory
+	 */
+	public IStoreFactory findStoreFactory(Class<?> aClass)
+	{
+		return findStoreFactory(aClass.getName());
+	}
 
-    /**
-     * Register a new description.
-     *
-     * @param desc New description
-     */
-    public void registerDescription(StoreDescription desc) {
-        String key = desc.getId();
-        if (key == null || "".equals(key))
-            key = desc.getTagClass();
-        descriptors.put(key, desc);
-        if (log.isDebugEnabled())
-            log.debug("register store descriptor " + key + "#" + desc.getTag()
-                    + "#" + desc.getTagClass());
-    }
+	/**
+	 * Register a new description.
+	 *
+	 * @param desc
+	 *            New description
+	 */
+	public void registerDescription(StoreDescription desc)
+	{
+		String key = desc.getId();
+		if (key == null || "".equals(key))
+			key = desc.getTagClass();
+		descriptors.put(key, desc);
+		if (log.isDebugEnabled())
+			log.debug("register store descriptor " + key + "#" + desc.getTag() + "#" + desc.getTagClass());
+	}
 
-    /**
-     * Unregister a description.
-     *
-     * @param desc The description
-     * @return the description, or <code>null</code> if it was not registered
-     */
-    public StoreDescription unregisterDescription(StoreDescription desc) {
-        String key = desc.getId();
-        if (key == null || "".equals(key))
-            key = desc.getTagClass();
-        return descriptors.remove(key);
-    }
+	/**
+	 * Unregister a description.
+	 *
+	 * @param desc
+	 *            The description
+	 * @return the description, or <code>null</code> if it was not registered
+	 */
+	public StoreDescription unregisterDescription(StoreDescription desc)
+	{
+		String key = desc.getId();
+		if (key == null || "".equals(key))
+			key = desc.getTagClass();
+		return descriptors.remove(key);
+	}
 
-    // Attributes
+	// Attributes
 
-    /**
-     * @return The encoding
-     */
-    public String getEncoding() {
-        return encoding;
-    }
+	/**
+	 * @return The encoding
+	 */
+	public String getEncoding()
+	{
+		return encoding;
+	}
 
-    /**
-     * Set the encoding to use when writing the configuration files.
-     * @param string The encoding
-     */
-    public void setEncoding(String string) {
-        encoding = string;
-    }
+	/**
+	 * Set the encoding to use when writing the configuration files.
+	 * 
+	 * @param string
+	 *            The encoding
+	 */
+	public void setEncoding(String string)
+	{
+		encoding = string;
+	}
 
 }

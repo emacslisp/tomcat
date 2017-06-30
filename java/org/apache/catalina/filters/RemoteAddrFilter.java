@@ -27,8 +27,8 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
 /**
- * Concrete implementation of <code>RequestFilter</code> that filters
- * based on the string representation of the remote client's IP address.
+ * Concrete implementation of <code>RequestFilter</code> that filters based on
+ * the string representation of the remote client's IP address.
  *
  * @author Craig R. McClanahan
  *
@@ -36,40 +36,43 @@ import org.apache.juli.logging.LogFactory;
 
 public final class RemoteAddrFilter extends RequestFilter {
 
-    // ----------------------------------------------------- Instance Variables
-    private static final Log log = LogFactory.getLog(RemoteAddrFilter.class);
+	// ----------------------------------------------------- Instance Variables
+	private static final Log log = LogFactory.getLog(RemoteAddrFilter.class);
 
+	// ------------------------------------------------------------- Properties
 
-    // ------------------------------------------------------------- Properties
+	// --------------------------------------------------------- Public Methods
 
+	/**
+	 * Extract the desired request property, and pass it (along with the
+	 * specified request and response objects and associated filter chain) to
+	 * the protected <code>process()</code> method to perform the actual
+	 * filtering.
+	 *
+	 * @param request
+	 *            The servlet request to be processed
+	 * @param response
+	 *            The servlet response to be created
+	 * @param chain
+	 *            The filter chain for this request
+	 *
+	 * @exception IOException
+	 *                if an input/output error occurs
+	 * @exception ServletException
+	 *                if a servlet error occurs
+	 */
+	@Override
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+			throws IOException, ServletException
+	{
 
+		process(request.getRemoteAddr(), request, response, chain);
 
-    // --------------------------------------------------------- Public Methods
+	}
 
-
-    /**
-     * Extract the desired request property, and pass it (along with the
-     * specified request and response objects and associated filter chain) to
-     * the protected <code>process()</code> method to perform the actual
-     * filtering.
-     *
-     * @param request  The servlet request to be processed
-     * @param response The servlet response to be created
-     * @param chain    The filter chain for this request
-     *
-     * @exception IOException if an input/output error occurs
-     * @exception ServletException if a servlet error occurs
-     */
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response,
-            FilterChain chain) throws IOException, ServletException {
-
-        process(request.getRemoteAddr(), request, response, chain);
-
-    }
-
-    @Override
-    protected Log getLogger() {
-        return log;
-    }
+	@Override
+	protected Log getLogger()
+	{
+		return log;
+	}
 }

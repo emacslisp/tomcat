@@ -26,8 +26,8 @@ import java.lang.annotation.Target;
  * @since Common Annotations 1.0
  */
 @Documented
-@Target({ElementType.METHOD, ElementType.TYPE})
+@Target({ ElementType.METHOD, ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface DenyAll {
-    // No attributes
+	// No attributes
 }

@@ -23,18 +23,17 @@ import org.apache.tomcat.util.net.SSLSupport;
 import org.apache.tomcat.util.net.SocketEvent;
 import org.apache.tomcat.util.net.SocketWrapperBase;
 
-
 /**
  * This Tomcat specific interface is implemented by handlers that require direct
  * access to Tomcat's I/O layer rather than going through the Servlet API.
  */
 public interface InternalHttpUpgradeHandler extends HttpUpgradeHandler {
 
-    SocketState upgradeDispatch(SocketEvent status);
+	SocketState upgradeDispatch(SocketEvent status);
 
-    void setSocketWrapper(SocketWrapperBase<?> wrapper);
+	void setSocketWrapper(SocketWrapperBase<?> wrapper);
 
-    void setSslSupport(SSLSupport sslSupport);
+	void setSslSupport(SSLSupport sslSupport);
 
-    void pause();
+	void pause();
 }

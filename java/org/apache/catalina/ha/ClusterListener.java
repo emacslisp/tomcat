@@ -24,7 +24,6 @@ import org.apache.catalina.tribes.Member;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
-
 /**
  * Receive SessionID cluster change from other backup node after primary session
  * node is failed.
@@ -33,83 +32,87 @@ import org.apache.juli.logging.LogFactory;
  */
 public abstract class ClusterListener implements ChannelListener {
 
-    private static final Log log = LogFactory.getLog(ClusterListener.class);
+	private static final Log log = LogFactory.getLog(ClusterListener.class);
 
-    //--Instance Variables--------------------------------------
+	// --Instance Variables--------------------------------------
 
-    /**
-     * The string manager for this package.
-     */
+	/**
+	 * The string manager for this package.
+	 */
 
-    protected CatalinaCluster cluster = null;
+	protected CatalinaCluster cluster = null;
 
-    //--Constructor---------------------------------------------
+	// --Constructor---------------------------------------------
 
-    public ClusterListener() {
-        // NO-OP
-    }
+	public ClusterListener() {
+		// NO-OP
+	}
 
-    //--Instance Getters/Setters--------------------------------
+	// --Instance Getters/Setters--------------------------------
 
-    public CatalinaCluster getCluster() {
-        return cluster;
-    }
+	public CatalinaCluster getCluster()
+	{
+		return cluster;
+	}
 
-    public void setCluster(CatalinaCluster cluster) {
-        if (log.isDebugEnabled()) {
-            if (cluster != null)
-                log.debug("add ClusterListener " + this.toString() +
-                        " to cluster" + cluster);
-            else
-                log.debug("remove ClusterListener " + this.toString() +
-                        " from cluster");
-        }
-        this.cluster = cluster;
-    }
+	public void setCluster(CatalinaCluster cluster)
+	{
+		if (log.isDebugEnabled()) {
+			if (cluster != null)
+				log.debug("add ClusterListener " + this.toString() + " to cluster" + cluster);
+			else
+				log.debug("remove ClusterListener " + this.toString() + " from cluster");
+		}
+		this.cluster = cluster;
+	}
 
-    @Override
-    public boolean equals(Object listener) {
-        return super.equals(listener);
-    }
+	@Override
+	public boolean equals(Object listener)
+	{
+		return super.equals(listener);
+	}
 
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
+	@Override
+	public int hashCode()
+	{
+		return super.hashCode();
+	}
 
-    //--Logic---------------------------------------------------
+	// --Logic---------------------------------------------------
 
-    @Override
-    public final void messageReceived(Serializable msg, Member member) {
-        if ( msg instanceof ClusterMessage ) messageReceived((ClusterMessage)msg);
-    }
-    @Override
-    public final boolean accept(Serializable msg, Member member) {
-        if ( msg instanceof ClusterMessage ) return true;
-        return false;
-    }
+	@Override
+	public final void messageReceived(Serializable msg, Member member)
+	{
+		if (msg instanceof ClusterMessage)
+			messageReceived((ClusterMessage) msg);
+	}
 
+	@Override
+	public final boolean accept(Serializable msg, Member member)
+	{
+		if (msg instanceof ClusterMessage)
+			return true;
+		return false;
+	}
 
+	/**
+	 * Callback from the cluster, when a message is received, The cluster will
+	 * broadcast it invoking the messageReceived on the receiver.
+	 *
+	 * @param msg
+	 *            ClusterMessage - the message received from the cluster
+	 */
+	public abstract void messageReceived(ClusterMessage msg);
 
-    /**
-     * Callback from the cluster, when a message is received, The cluster will
-     * broadcast it invoking the messageReceived on the receiver.
-     *
-     * @param msg
-     *            ClusterMessage - the message received from the cluster
-     */
-    public abstract void messageReceived(ClusterMessage msg) ;
-
-
-    /**
-     * Accept only SessionIDMessages
-     *
-     * @param msg
-     *            ClusterMessage
-     * @return boolean - returns true to indicate that messageReceived should be
-     *         invoked. If false is returned, the messageReceived method will
-     *         not be invoked.
-     */
-    public abstract boolean accept(ClusterMessage msg) ;
+	/**
+	 * Accept only SessionIDMessages
+	 *
+	 * @param msg
+	 *            ClusterMessage
+	 * @return boolean - returns true to indicate that messageReceived should be
+	 *         invoked. If false is returned, the messageReceived method will
+	 *         not be invoked.
+	 */
+	public abstract boolean accept(ClusterMessage msg);
 
 }

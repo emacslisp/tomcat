@@ -32,76 +32,74 @@ import org.apache.tomcat.util.descriptor.web.ContextResourceLink;
  * Store server.xml elements Resources at context and GlobalNamingResources
  */
 public class NamingResourcesSF extends StoreFactoryBase {
-    private static Log log = LogFactory.getLog(NamingResourcesSF.class);
+	private static Log log = LogFactory.getLog(NamingResourcesSF.class);
 
-    /**
-     * Store the only the NamingResources elements
-     *
-     * @see NamingResourcesSF#storeChildren(PrintWriter, int, Object, StoreDescription)
-     */
-    @Override
-    public void store(PrintWriter aWriter, int indent, Object aElement)
-            throws Exception {
-        StoreDescription elementDesc = getRegistry().findDescription(
-                aElement.getClass());
-        if (elementDesc != null) {
-            if (log.isDebugEnabled())
-                log.debug("store " + elementDesc.getTag() + "( " + aElement
-                        + " )");
-            storeChildren(aWriter, indent, aElement, elementDesc);
-        } else {
-            if (log.isWarnEnabled())
-                log.warn("Descriptor for element" + aElement.getClass()
-                        + " not configured!");
-        }
-    }
+	/**
+	 * Store the only the NamingResources elements
+	 *
+	 * @see NamingResourcesSF#storeChildren(PrintWriter, int, Object,
+	 *      StoreDescription)
+	 */
+	@Override
+	public void store(PrintWriter aWriter, int indent, Object aElement) throws Exception
+	{
+		StoreDescription elementDesc = getRegistry().findDescription(aElement.getClass());
+		if (elementDesc != null) {
+			if (log.isDebugEnabled())
+				log.debug("store " + elementDesc.getTag() + "( " + aElement + " )");
+			storeChildren(aWriter, indent, aElement, elementDesc);
+		} else {
+			if (log.isWarnEnabled())
+				log.warn("Descriptor for element" + aElement.getClass() + " not configured!");
+		}
+	}
 
-    /**
-     * Store the specified NamingResources properties.
-     *
-     * @param aWriter
-     *            PrintWriter to which we are storing
-     * @param indent
-     *            Number of spaces to indent this element
-     * @param aElement
-     *            Object whose properties are being stored
-     * @param elementDesc
-     *            element descriptor
-     *
-     * @exception Exception
-     *                if an exception occurs while storing
-     *
-     * @see org.apache.catalina.storeconfig.StoreFactoryBase#storeChildren(java.io.PrintWriter,
-     *      int, java.lang.Object, StoreDescription)
-     */
-    @Override
-    public void storeChildren(PrintWriter aWriter, int indent, Object aElement,
-            StoreDescription elementDesc) throws Exception {
+	/**
+	 * Store the specified NamingResources properties.
+	 *
+	 * @param aWriter
+	 *            PrintWriter to which we are storing
+	 * @param indent
+	 *            Number of spaces to indent this element
+	 * @param aElement
+	 *            Object whose properties are being stored
+	 * @param elementDesc
+	 *            element descriptor
+	 *
+	 * @exception Exception
+	 *                if an exception occurs while storing
+	 *
+	 * @see org.apache.catalina.storeconfig.StoreFactoryBase#storeChildren(java.io.PrintWriter,
+	 *      int, java.lang.Object, StoreDescription)
+	 */
+	@Override
+	public void storeChildren(PrintWriter aWriter, int indent, Object aElement, StoreDescription elementDesc)
+			throws Exception
+	{
 
-        if (aElement instanceof NamingResourcesImpl) {
-            NamingResourcesImpl resources = (NamingResourcesImpl) aElement;
-            // Store nested <Ejb> elements
-            ContextEjb[] ejbs = resources.findEjbs();
-            storeElementArray(aWriter, indent, ejbs);
-            // Store nested <Environment> elements
-            ContextEnvironment[] envs = resources.findEnvironments();
-            storeElementArray(aWriter, indent, envs);
-            // Store nested <LocalEjb> elements
-            ContextLocalEjb[] lejbs = resources.findLocalEjbs();
-            storeElementArray(aWriter, indent, lejbs);
+		if (aElement instanceof NamingResourcesImpl) {
+			NamingResourcesImpl resources = (NamingResourcesImpl) aElement;
+			// Store nested <Ejb> elements
+			ContextEjb[] ejbs = resources.findEjbs();
+			storeElementArray(aWriter, indent, ejbs);
+			// Store nested <Environment> elements
+			ContextEnvironment[] envs = resources.findEnvironments();
+			storeElementArray(aWriter, indent, envs);
+			// Store nested <LocalEjb> elements
+			ContextLocalEjb[] lejbs = resources.findLocalEjbs();
+			storeElementArray(aWriter, indent, lejbs);
 
-            // Store nested <Resource> elements
-            ContextResource[] dresources = resources.findResources();
-            storeElementArray(aWriter, indent, dresources);
+			// Store nested <Resource> elements
+			ContextResource[] dresources = resources.findResources();
+			storeElementArray(aWriter, indent, dresources);
 
-            // Store nested <ResourceEnvRef> elements
-            ContextResourceEnvRef[] resEnv = resources.findResourceEnvRefs();
-            storeElementArray(aWriter, indent, resEnv);
+			// Store nested <ResourceEnvRef> elements
+			ContextResourceEnvRef[] resEnv = resources.findResourceEnvRefs();
+			storeElementArray(aWriter, indent, resEnv);
 
-            // Store nested <ResourceLink> elements
-            ContextResourceLink[] resourceLinks = resources.findResourceLinks();
-            storeElementArray(aWriter, indent, resourceLinks);
-        }
-    }
+			// Store nested <ResourceLink> elements
+			ContextResourceLink[] resourceLinks = resources.findResourceLinks();
+			storeElementArray(aWriter, indent, resourceLinks);
+		}
+	}
 }
-

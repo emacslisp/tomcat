@@ -41,166 +41,153 @@ import org.xml.sax.SAXException;
 
 /**
  * Class responsible for generating an implicit tag library containing tag
- * handlers corresponding to the tag files in "/WEB-INF/tags/" or a
- * subdirectory of it.
+ * handlers corresponding to the tag files in "/WEB-INF/tags/" or a subdirectory
+ * of it.
  *
  * @author Jan Luehe
  */
 class ImplicitTagLibraryInfo extends TagLibraryInfo {
 
-    private static final String WEB_INF_TAGS = "/WEB-INF/tags";
-    private static final String TAG_FILE_SUFFIX = ".tag";
-    private static final String TAGX_FILE_SUFFIX = ".tagx";
-    private static final String TAGS_SHORTNAME = "tags";
-    private static final String TLIB_VERSION = "1.0";
-    private static final String JSP_VERSION = "2.0";
-    private static final String IMPLICIT_TLD = "implicit.tld";
+	private static final String WEB_INF_TAGS = "/WEB-INF/tags";
+	private static final String TAG_FILE_SUFFIX = ".tag";
+	private static final String TAGX_FILE_SUFFIX = ".tagx";
+	private static final String TAGS_SHORTNAME = "tags";
+	private static final String TLIB_VERSION = "1.0";
+	private static final String JSP_VERSION = "2.0";
+	private static final String IMPLICIT_TLD = "implicit.tld";
 
-    // Maps tag names to tag file paths
-    private final Hashtable<String,String> tagFileMap;
+	// Maps tag names to tag file paths
+	private final Hashtable<String, String> tagFileMap;
 
-    private final ParserController pc;
-    private final PageInfo pi;
-    private final Vector<TagFileInfo> vec;
+	private final ParserController pc;
+	private final PageInfo pi;
+	private final Vector<TagFileInfo> vec;
 
+	public ImplicitTagLibraryInfo(JspCompilationContext ctxt, ParserController pc, PageInfo pi, String prefix,
+			String tagdir, ErrorDispatcher err) throws JasperException {
+		super(prefix, null);
+		this.pc = pc;
+		this.pi = pi;
+		this.tagFileMap = new Hashtable<>();
+		this.vec = new Vector<>();
 
-    public ImplicitTagLibraryInfo(JspCompilationContext ctxt,
-            ParserController pc,
-            PageInfo pi,
-            String prefix,
-            String tagdir,
-            ErrorDispatcher err) throws JasperException {
-        super(prefix, null);
-        this.pc = pc;
-        this.pi = pi;
-        this.tagFileMap = new Hashtable<>();
-        this.vec = new Vector<>();
+		// Implicit tag libraries have no functions:
+		this.functions = new FunctionInfo[0];
 
-        // Implicit tag libraries have no functions:
-        this.functions = new FunctionInfo[0];
+		tlibversion = TLIB_VERSION;
+		jspversion = JSP_VERSION;
 
-        tlibversion = TLIB_VERSION;
-        jspversion = JSP_VERSION;
+		if (!tagdir.startsWith(WEB_INF_TAGS)) {
+			err.jspError("jsp.error.invalid.tagdir", tagdir);
+		}
 
-        if (!tagdir.startsWith(WEB_INF_TAGS)) {
-            err.jspError("jsp.error.invalid.tagdir", tagdir);
-        }
+		// Determine the value of the <short-name> subelement of the
+		// "imaginary" <taglib> element
+		if (tagdir.equals(WEB_INF_TAGS) || tagdir.equals(WEB_INF_TAGS + "/")) {
+			shortname = TAGS_SHORTNAME;
+		} else {
+			shortname = tagdir.substring(WEB_INF_TAGS.length());
+			shortname = shortname.replace('/', '-');
+		}
 
-        // Determine the value of the <short-name> subelement of the
-        // "imaginary" <taglib> element
-        if (tagdir.equals(WEB_INF_TAGS)
-                || tagdir.equals( WEB_INF_TAGS + "/")) {
-            shortname = TAGS_SHORTNAME;
-        } else {
-            shortname = tagdir.substring(WEB_INF_TAGS.length());
-            shortname = shortname.replace('/', '-');
-        }
+		// Populate mapping of tag names to tag file paths
+		Set<String> dirList = ctxt.getResourcePaths(tagdir);
+		if (dirList != null) {
+			for (String path : dirList) {
+				if (path.endsWith(TAG_FILE_SUFFIX) || path.endsWith(TAGX_FILE_SUFFIX)) {
+					/*
+					 * Use the filename of the tag file, without the .tag or
+					 * .tagx extension, respectively, as the <name> subelement
+					 * of the "imaginary" <tag-file> element
+					 */
+					String suffix = path.endsWith(TAG_FILE_SUFFIX) ? TAG_FILE_SUFFIX : TAGX_FILE_SUFFIX;
+					String tagName = path.substring(path.lastIndexOf('/') + 1);
+					tagName = tagName.substring(0, tagName.lastIndexOf(suffix));
+					tagFileMap.put(tagName, path);
+				} else if (path.endsWith(IMPLICIT_TLD)) {
+					TaglibXml taglibXml;
+					try {
+						URL url = ctxt.getResource(path);
+						TldResourcePath resourcePath = new TldResourcePath(url, path);
+						ServletContext servletContext = ctxt.getServletContext();
+						boolean validate = Boolean
+								.parseBoolean(servletContext.getInitParameter(Constants.XML_VALIDATION_TLD_INIT_PARAM));
+						String blockExternalString = servletContext
+								.getInitParameter(Constants.XML_BLOCK_EXTERNAL_INIT_PARAM);
+						boolean blockExternal;
+						if (blockExternalString == null) {
+							blockExternal = true;
+						} else {
+							blockExternal = Boolean.parseBoolean(blockExternalString);
+						}
+						TldParser parser = new TldParser(true, validate, new ImplicitTldRuleSet(), blockExternal);
+						taglibXml = parser.parse(resourcePath);
+					} catch (IOException | SAXException e) {
+						err.jspError(e);
+						// unreached
+						throw new JasperException(e);
+					}
+					this.tlibversion = taglibXml.getTlibVersion();
+					this.jspversion = taglibXml.getJspVersion();
+					try {
+						double version = Double.parseDouble(this.jspversion);
+						if (version < 2.0) {
+							err.jspError("jsp.error.invalid.implicit.version", path);
+						}
+					} catch (NumberFormatException e) {
+						err.jspError("jsp.error.invalid.implicit.version", path);
+					}
 
-        // Populate mapping of tag names to tag file paths
-        Set<String> dirList = ctxt.getResourcePaths(tagdir);
-        if (dirList != null) {
-            for (String path : dirList) {
-                if (path.endsWith(TAG_FILE_SUFFIX)
-                        || path.endsWith(TAGX_FILE_SUFFIX)) {
-                    /*
-                     * Use the filename of the tag file, without the .tag or
-                     * .tagx extension, respectively, as the <name> subelement
-                     * of the "imaginary" <tag-file> element
-                     */
-                    String suffix = path.endsWith(TAG_FILE_SUFFIX) ?
-                            TAG_FILE_SUFFIX : TAGX_FILE_SUFFIX;
-                    String tagName = path.substring(path.lastIndexOf('/') + 1);
-                    tagName = tagName.substring(0,
-                            tagName.lastIndexOf(suffix));
-                    tagFileMap.put(tagName, path);
-                } else if (path.endsWith(IMPLICIT_TLD)) {
-                    TaglibXml taglibXml;
-                    try {
-                        URL url = ctxt.getResource(path);
-                        TldResourcePath resourcePath = new TldResourcePath(url, path);
-                        ServletContext servletContext = ctxt.getServletContext();
-                        boolean validate = Boolean.parseBoolean(
-                                servletContext.getInitParameter(
-                                        Constants.XML_VALIDATION_TLD_INIT_PARAM));
-                        String blockExternalString = servletContext.getInitParameter(
-                                Constants.XML_BLOCK_EXTERNAL_INIT_PARAM);
-                        boolean blockExternal;
-                        if (blockExternalString == null) {
-                            blockExternal = true;
-                        } else {
-                            blockExternal = Boolean.parseBoolean(blockExternalString);
-                        }
-                        TldParser parser = new TldParser(true, validate,
-                                new ImplicitTldRuleSet(), blockExternal);
-                        taglibXml = parser.parse(resourcePath);
-                    } catch (IOException | SAXException e) {
-                        err.jspError(e);
-                        // unreached
-                        throw new JasperException(e);
-                    }
-                    this.tlibversion = taglibXml.getTlibVersion();
-                    this.jspversion = taglibXml.getJspVersion();
-                    try {
-                        double version = Double.parseDouble(this.jspversion);
-                        if (version < 2.0) {
-                            err.jspError("jsp.error.invalid.implicit.version", path);
-                        }
-                    } catch (NumberFormatException e) {
-                        err.jspError("jsp.error.invalid.implicit.version", path);
-                    }
+					// Add implicit TLD to dependency list
+					if (pi != null) {
+						pi.addDependant(path, ctxt.getLastModified(path));
+					}
+				}
+			}
+		}
 
-                    // Add implicit TLD to dependency list
-                    if (pi != null) {
-                        pi.addDependant(path, ctxt.getLastModified(path));
-                    }
-                }
-            }
-        }
+	}
 
-    }
+	/**
+	 * Checks to see if the given tag name maps to a tag file path, and if so,
+	 * parses the corresponding tag file.
+	 *
+	 * @return The TagFileInfo corresponding to the given tag name, or null if
+	 *         the given tag name is not implemented as a tag file
+	 */
+	@Override
+	public TagFileInfo getTagFile(String shortName)
+	{
 
-    /**
-     * Checks to see if the given tag name maps to a tag file path,
-     * and if so, parses the corresponding tag file.
-     *
-     * @return The TagFileInfo corresponding to the given tag name, or null if
-     * the given tag name is not implemented as a tag file
-     */
-    @Override
-    public TagFileInfo getTagFile(String shortName) {
+		TagFileInfo tagFile = super.getTagFile(shortName);
+		if (tagFile == null) {
+			String path = tagFileMap.get(shortName);
+			if (path == null) {
+				return null;
+			}
 
-        TagFileInfo tagFile = super.getTagFile(shortName);
-        if (tagFile == null) {
-            String path = tagFileMap.get(shortName);
-            if (path == null) {
-                return null;
-            }
+			TagInfo tagInfo = null;
+			try {
+				tagInfo = TagFileProcessor.parseTagFileDirectives(pc, shortName, path, null, this);
+			} catch (JasperException je) {
+				throw new RuntimeException(je.toString(), je);
+			}
 
-            TagInfo tagInfo = null;
-            try {
-                tagInfo = TagFileProcessor.parseTagFileDirectives(pc,
-                        shortName,
-                        path,
-                        null,
-                        this);
-            } catch (JasperException je) {
-                throw new RuntimeException(je.toString(), je);
-            }
+			tagFile = new TagFileInfo(shortName, path, tagInfo);
+			vec.addElement(tagFile);
 
-            tagFile = new TagFileInfo(shortName, path, tagInfo);
-            vec.addElement(tagFile);
+			this.tagFiles = new TagFileInfo[vec.size()];
+			vec.copyInto(this.tagFiles);
+		}
 
-            this.tagFiles = new TagFileInfo[vec.size()];
-            vec.copyInto(this.tagFiles);
-        }
+		return tagFile;
+	}
 
-        return tagFile;
-    }
-
-    @Override
-    public TagLibraryInfo[] getTagLibraryInfos() {
-        Collection<TagLibraryInfo> coll = pi.getTaglibs();
-        return coll.toArray(new TagLibraryInfo[0]);
-    }
+	@Override
+	public TagLibraryInfo[] getTagLibraryInfos()
+	{
+		Collection<TagLibraryInfo> coll = pi.getTaglibs();
+		return coll.toArray(new TagLibraryInfo[0]);
+	}
 
 }

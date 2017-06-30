@@ -35,177 +35,193 @@ import org.apache.juli.logging.LogFactory;
 
 public abstract class ClusterManagerBase extends ManagerBase implements ClusterManager {
 
-    private final Log log = LogFactory.getLog(ClusterManagerBase.class);
+	private final Log log = LogFactory.getLog(ClusterManagerBase.class);
 
-    /**
-     * A reference to the cluster
-     */
-    protected CatalinaCluster cluster = null;
+	/**
+	 * A reference to the cluster
+	 */
+	protected CatalinaCluster cluster = null;
 
-    /**
-     * Should listeners be notified?
-     */
-    private boolean notifyListenersOnReplication = true;
+	/**
+	 * Should listeners be notified?
+	 */
+	private boolean notifyListenersOnReplication = true;
 
-    /**
-     * cached replication valve cluster container!
-     */
-    private volatile ReplicationValve replicationValve = null ;
+	/**
+	 * cached replication valve cluster container!
+	 */
+	private volatile ReplicationValve replicationValve = null;
 
-    /**
-     * send all actions of session attributes.
-     */
-    private boolean recordAllActions = false;
+	/**
+	 * send all actions of session attributes.
+	 */
+	private boolean recordAllActions = false;
 
-    @Override
-    public CatalinaCluster getCluster() {
-        return cluster;
-    }
+	@Override
+	public CatalinaCluster getCluster()
+	{
+		return cluster;
+	}
 
-    @Override
-    public void setCluster(CatalinaCluster cluster) {
-        this.cluster = cluster;
-    }
+	@Override
+	public void setCluster(CatalinaCluster cluster)
+	{
+		this.cluster = cluster;
+	}
 
-    @Override
-    public boolean isNotifyListenersOnReplication() {
-        return notifyListenersOnReplication;
-    }
+	@Override
+	public boolean isNotifyListenersOnReplication()
+	{
+		return notifyListenersOnReplication;
+	}
 
-    public void setNotifyListenersOnReplication(boolean notifyListenersOnReplication) {
-        this.notifyListenersOnReplication = notifyListenersOnReplication;
-    }
+	public void setNotifyListenersOnReplication(boolean notifyListenersOnReplication)
+	{
+		this.notifyListenersOnReplication = notifyListenersOnReplication;
+	}
 
+	public boolean isRecordAllActions()
+	{
+		return recordAllActions;
+	}
 
-    public boolean isRecordAllActions() {
-        return recordAllActions;
-    }
+	public void setRecordAllActions(boolean recordAllActions)
+	{
+		this.recordAllActions = recordAllActions;
+	}
 
-    public void setRecordAllActions(boolean recordAllActions) {
-        this.recordAllActions = recordAllActions;
-    }
+	public static ClassLoader[] getClassLoaders(Context context)
+	{
+		ClassLoader tccl = Thread.currentThread().getContextClassLoader();
+		Loader loader = context.getLoader();
+		ClassLoader classLoader = null;
+		if (loader != null) {
+			classLoader = loader.getClassLoader();
+		}
+		if (classLoader == null) {
+			classLoader = tccl;
+		}
+		if (classLoader == tccl) {
+			return new ClassLoader[] { classLoader };
+		} else {
+			return new ClassLoader[] { classLoader, tccl };
+		}
+	}
 
+	public ClassLoader[] getClassLoaders()
+	{
+		return getClassLoaders(getContext());
+	}
 
-    public static ClassLoader[] getClassLoaders(Context context) {
-        ClassLoader tccl = Thread.currentThread().getContextClassLoader();
-        Loader loader = context.getLoader();
-        ClassLoader classLoader = null;
-        if (loader != null) {
-            classLoader = loader.getClassLoader();
-        }
-        if (classLoader == null) {
-            classLoader = tccl;
-        }
-        if (classLoader == tccl) {
-            return new ClassLoader[] {classLoader};
-        } else {
-            return new ClassLoader[] {classLoader, tccl};
-        }
-    }
+	@Override
+	public ReplicationStream getReplicationStream(byte[] data) throws IOException
+	{
+		return getReplicationStream(data, 0, data.length);
+	}
 
+	@Override
+	public ReplicationStream getReplicationStream(byte[] data, int offset, int length) throws IOException
+	{
+		ByteArrayInputStream fis = new ByteArrayInputStream(data, offset, length);
+		return new ReplicationStream(fis, getClassLoaders());
+	}
 
-    public ClassLoader[] getClassLoaders() {
-        return getClassLoaders(getContext());
-    }
+	// ---------------------------------------------------- persistence handler
 
-    @Override
-    public ReplicationStream getReplicationStream(byte[] data) throws IOException {
-        return getReplicationStream(data,0,data.length);
-    }
+	/**
+	 * {@link org.apache.catalina.Manager} implementations that also implement
+	 * {@link ClusterManager} do not support local session persistence.
+	 */
+	@Override
+	public void load()
+	{
+		// NOOP
+	}
 
-    @Override
-    public ReplicationStream getReplicationStream(byte[] data, int offset, int length) throws IOException {
-        ByteArrayInputStream fis = new ByteArrayInputStream(data, offset, length);
-        return new ReplicationStream(fis, getClassLoaders());
-    }
+	/**
+	 * {@link org.apache.catalina.Manager} implementations that also implement
+	 * {@link ClusterManager} do not support local session persistence.
+	 */
+	@Override
+	public void unload()
+	{
+		// NOOP
+	}
 
+	protected void clone(ClusterManagerBase copy)
+	{
+		copy.setName("Clone-from-" + getName());
+		copy.setMaxActiveSessions(getMaxActiveSessions());
+		copy.setProcessExpiresFrequency(getProcessExpiresFrequency());
+		copy.setNotifyListenersOnReplication(isNotifyListenersOnReplication());
+		copy.setSessionAttributeNameFilter(getSessionAttributeNameFilter());
+		copy.setSessionAttributeValueClassNameFilter(getSessionAttributeValueClassNameFilter());
+		copy.setWarnOnSessionAttributeFilterFailure(getWarnOnSessionAttributeFilterFailure());
+		copy.setSecureRandomClass(getSecureRandomClass());
+		copy.setSecureRandomProvider(getSecureRandomProvider());
+		copy.setSecureRandomAlgorithm(getSecureRandomAlgorithm());
+		if (getSessionIdGenerator() != null) {
+			try {
+				SessionIdGenerator copyIdGenerator = sessionIdGeneratorClass.newInstance();
+				copyIdGenerator.setSessionIdLength(getSessionIdGenerator().getSessionIdLength());
+				copyIdGenerator.setJvmRoute(getSessionIdGenerator().getJvmRoute());
+				copy.setSessionIdGenerator(copyIdGenerator);
+			} catch (InstantiationException | IllegalAccessException e) {
+				// Ignore
+			}
+		}
+		copy.setRecordAllActions(isRecordAllActions());
+	}
 
-    //  ---------------------------------------------------- persistence handler
+	/**
+	 * Register cross context session at replication valve thread local
+	 * 
+	 * @param session
+	 *            cross context session
+	 */
+	protected void registerSessionAtReplicationValve(DeltaSession session)
+	{
+		if (replicationValve == null) {
+			CatalinaCluster cluster = getCluster();
+			if (cluster != null) {
+				Valve[] valves = cluster.getValves();
+				if (valves != null && valves.length > 0) {
+					for (int i = 0; replicationValve == null && i < valves.length; i++) {
+						if (valves[i] instanceof ReplicationValve)
+							replicationValve = (ReplicationValve) valves[i];
+					} // for
 
-    /**
-     * {@link org.apache.catalina.Manager} implementations that also implement
-     * {@link ClusterManager} do not support local session persistence.
-     */
-    @Override
-    public void load() {
-        // NOOP
-    }
+					if (replicationValve == null && log.isDebugEnabled()) {
+						log.debug("no ReplicationValve found for CrossContext Support");
+					} // endif
+				} // end if
+			} // endif
+		} // end if
+		if (replicationValve != null) {
+			replicationValve.registerReplicationSession(session);
+		}
+	}
 
-    /**
-     * {@link org.apache.catalina.Manager} implementations that also implement
-     * {@link ClusterManager} do not support local session persistence.
-     */
-    @Override
-    public void unload() {
-        // NOOP
-    }
+	@Override
+	protected void startInternal() throws LifecycleException
+	{
+		super.startInternal();
+		if (getCluster() == null) {
+			Cluster cluster = getContext().getCluster();
+			if (cluster instanceof CatalinaCluster) {
+				setCluster((CatalinaCluster) cluster);
+			}
+		}
+		if (cluster != null)
+			cluster.registerManager(this);
+	}
 
-    protected void clone(ClusterManagerBase copy) {
-        copy.setName("Clone-from-" + getName());
-        copy.setMaxActiveSessions(getMaxActiveSessions());
-        copy.setProcessExpiresFrequency(getProcessExpiresFrequency());
-        copy.setNotifyListenersOnReplication(isNotifyListenersOnReplication());
-        copy.setSessionAttributeNameFilter(getSessionAttributeNameFilter());
-        copy.setSessionAttributeValueClassNameFilter(getSessionAttributeValueClassNameFilter());
-        copy.setWarnOnSessionAttributeFilterFailure(getWarnOnSessionAttributeFilterFailure());
-        copy.setSecureRandomClass(getSecureRandomClass());
-        copy.setSecureRandomProvider(getSecureRandomProvider());
-        copy.setSecureRandomAlgorithm(getSecureRandomAlgorithm());
-        if (getSessionIdGenerator() != null) {
-            try {
-                SessionIdGenerator copyIdGenerator = sessionIdGeneratorClass.newInstance();
-                copyIdGenerator.setSessionIdLength(getSessionIdGenerator().getSessionIdLength());
-                copyIdGenerator.setJvmRoute(getSessionIdGenerator().getJvmRoute());
-                copy.setSessionIdGenerator(copyIdGenerator);
-            } catch (InstantiationException | IllegalAccessException e) {
-             // Ignore
-            }
-        }
-        copy.setRecordAllActions(isRecordAllActions());
-    }
-
-    /**
-     * Register cross context session at replication valve thread local
-     * @param session cross context session
-     */
-    protected void registerSessionAtReplicationValve(DeltaSession session) {
-        if(replicationValve == null) {
-            CatalinaCluster cluster = getCluster() ;
-            if(cluster != null) {
-                Valve[] valves = cluster.getValves();
-                if(valves != null && valves.length > 0) {
-                    for(int i=0; replicationValve == null && i < valves.length ; i++ ){
-                        if(valves[i] instanceof ReplicationValve) replicationValve =
-                                (ReplicationValve)valves[i] ;
-                    }//for
-
-                    if(replicationValve == null && log.isDebugEnabled()) {
-                        log.debug("no ReplicationValve found for CrossContext Support");
-                    }//endif
-                }//end if
-            }//endif
-        }//end if
-        if(replicationValve != null) {
-            replicationValve.registerReplicationSession(session);
-        }
-    }
-
-    @Override
-    protected void startInternal() throws LifecycleException {
-        super.startInternal();
-        if (getCluster() == null) {
-            Cluster cluster = getContext().getCluster();
-            if (cluster instanceof CatalinaCluster) {
-                setCluster((CatalinaCluster)cluster);
-            }
-        }
-        if (cluster != null) cluster.registerManager(this);
-    }
-
-    @Override
-    protected void stopInternal() throws LifecycleException {
-        if (cluster != null) cluster.removeManager(this);
-        replicationValve = null;
-        super.stopInternal();
-    }
+	@Override
+	protected void stopInternal() throws LifecycleException
+	{
+		if (cluster != null)
+			cluster.removeManager(this);
+		replicationValve = null;
+		super.stopInternal();
+	}
 }

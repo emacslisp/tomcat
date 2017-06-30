@@ -27,10 +27,10 @@ package org.apache.tomcat.dbcp.pool2;
  */
 public interface TrackedUse {
 
-    /**
-     * Get the last time this object was used in ms.
-     *
-     * @return long time in ms
-     */
-    long getLastUsed();
+	/**
+	 * Get the last time this object was used in ms.
+	 *
+	 * @return long time in ms
+	 */
+	long getLastUsed();
 }

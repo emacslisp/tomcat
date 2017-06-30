@@ -27,61 +27,59 @@ import java.util.function.Function;
  */
 public final class StringUtils {
 
-    private static final String EMPTY_STRING = "";
+	private static final String EMPTY_STRING = "";
 
-    private StringUtils() {
-        // Utility class
-    }
+	private StringUtils() {
+		// Utility class
+	}
 
+	public static String join(String[] array)
+	{
+		return join(Arrays.asList(array));
+	}
 
-    public static String join(String[] array) {
-        return join(Arrays.asList(array));
-    }
+	public static void join(String[] array, char separator, StringBuilder sb)
+	{
+		join(Arrays.asList(array), separator, sb);
+	}
 
+	public static String join(Collection<String> collection)
+	{
+		return join(collection, ',');
+	}
 
-    public static void join(String[] array, char separator, StringBuilder sb) {
-        join(Arrays.asList(array), separator, sb);
-    }
+	public static String join(Collection<String> collection, char separator)
+	{
+		// Shortcut
+		if (collection.isEmpty()) {
+			return EMPTY_STRING;
+		}
 
+		StringBuilder result = new StringBuilder();
+		join(collection, separator, result);
+		return result.toString();
+	}
 
-    public static String join(Collection<String> collection) {
-        return join(collection, ',');
-    }
+	public static void join(Iterable<String> iterable, char separator, StringBuilder sb)
+	{
+		join(iterable, separator, (x) -> x, sb);
+	}
 
+	public static <T> void join(T[] array, char separator, Function<T, String> function, StringBuilder sb)
+	{
+		join(Arrays.asList(array), separator, function, sb);
+	}
 
-    public static String join(Collection<String> collection, char separator) {
-        // Shortcut
-        if (collection.isEmpty()) {
-            return EMPTY_STRING;
-        }
-
-        StringBuilder result = new StringBuilder();
-        join(collection, separator, result);
-        return result.toString();
-    }
-
-
-    public static void join(Iterable<String> iterable, char separator, StringBuilder sb) {
-        join(iterable, separator, (x) -> x, sb);
-    }
-
-
-    public static <T> void join(T[] array, char separator, Function<T,String> function,
-            StringBuilder sb) {
-        join(Arrays.asList(array), separator, function, sb);
-    }
-
-
-    public static <T> void join(Iterable<T> iterable, char separator, Function<T,String> function,
-            StringBuilder sb) {
-        boolean first = true;
-        for (T value : iterable) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(separator);
-            }
-            sb.append(function.apply(value));
-        }
-    }
+	public static <T> void join(Iterable<T> iterable, char separator, Function<T, String> function, StringBuilder sb)
+	{
+		boolean first = true;
+		for (T value : iterable) {
+			if (first) {
+				first = false;
+			} else {
+				sb.append(separator);
+			}
+			sb.append(function.apply(value));
+		}
+	}
 }

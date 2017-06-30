@@ -26,16 +26,18 @@ import javax.security.auth.callback.Callback;
  */
 public class CertStoreCallback implements Callback {
 
-    private CertStore certStore;
+	private CertStore certStore;
 
-    public CertStoreCallback() {
-    }
+	public CertStoreCallback() {
+	}
 
-    public void setCertStore(CertStore certStore) {
-        this.certStore = certStore;
-    }
+	public void setCertStore(CertStore certStore)
+	{
+		this.certStore = certStore;
+	}
 
-    public CertStore getCertStore() {
-        return certStore;
-    }
+	public CertStore getCertStore()
+	{
+		return certStore;
+	}
 }

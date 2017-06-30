@@ -31,9 +31,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface HandlesTypes {
 
-    /**
-     * @return array of classes
-     */
-    Class<?>[] value();
+	/**
+	 * @return array of classes
+	 */
+	Class<?>[] value();
 
 }

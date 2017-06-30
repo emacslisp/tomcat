@@ -29,41 +29,40 @@ import org.apache.coyote.Response;
  */
 public interface OutputFilter extends OutputBuffer {
 
+	/**
+	 * Some filters need additional parameters from the response. All the
+	 * necessary reading can occur in that method, as this method is called
+	 * after the response header processing is complete.
+	 *
+	 * @param response
+	 *            The response to associate with this OutputFilter
+	 */
+	public void setResponse(Response response);
 
-    /**
-     * Some filters need additional parameters from the response. All the
-     * necessary reading can occur in that method, as this method is called
-     * after the response header processing is complete.
-     *
-     * @param response The response to associate with this OutputFilter
-     */
-    public void setResponse(Response response);
+	/**
+	 * Make the filter ready to process the next request.
+	 */
+	public void recycle();
 
+	/**
+	 * Set the next buffer in the filter pipeline.
+	 *
+	 * @param buffer
+	 *            The next buffer instance
+	 */
+	public void setBuffer(OutputBuffer buffer);
 
-    /**
-     * Make the filter ready to process the next request.
-     */
-    public void recycle();
-
-
-    /**
-     * Set the next buffer in the filter pipeline.
-     *
-     * @param buffer The next buffer instance
-     */
-    public void setBuffer(OutputBuffer buffer);
-
-
-    /**
-     * End the current request. It is acceptable to write extra bytes using
-     * buffer.doWrite during the execution of this method.
-     *
-     * @return Should return 0 unless the filter does some content length
-     * delimitation, in which case the number is the amount of extra bytes or
-     * missing bytes, which would indicate an error.
-     * Note: It is recommended that extra bytes be swallowed by the filter.
-     *
-     * @throws IOException If an I/O error occurs while writing to the client
-     */
-    public long end() throws IOException;
+	/**
+	 * End the current request. It is acceptable to write extra bytes using
+	 * buffer.doWrite during the execution of this method.
+	 *
+	 * @return Should return 0 unless the filter does some content length
+	 *         delimitation, in which case the number is the amount of extra
+	 *         bytes or missing bytes, which would indicate an error. Note: It
+	 *         is recommended that extra bytes be swallowed by the filter.
+	 *
+	 * @throws IOException
+	 *             If an I/O error occurs while writing to the client
+	 */
+	public long end() throws IOException;
 }

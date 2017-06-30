@@ -25,116 +25,129 @@ import org.apache.catalina.WebResourceSet;
 import org.apache.catalina.util.LifecycleBase;
 import org.apache.tomcat.util.res.StringManager;
 
-public abstract class AbstractResourceSet extends LifecycleBase
-        implements WebResourceSet {
+public abstract class AbstractResourceSet extends LifecycleBase implements WebResourceSet {
 
-    private WebResourceRoot root;
-    private String base;
-    private String internalPath = "";
-    private String webAppMount;
-    private boolean classLoaderOnly;
-    private boolean staticOnly;
-    private Manifest manifest;
+	private WebResourceRoot root;
+	private String base;
+	private String internalPath = "";
+	private String webAppMount;
+	private boolean classLoaderOnly;
+	private boolean staticOnly;
+	private Manifest manifest;
 
+	protected static final StringManager sm = StringManager.getManager(AbstractResourceSet.class);
 
-    protected static final StringManager sm = StringManager.getManager(AbstractResourceSet.class);
+	protected final void checkPath(String path)
+	{
+		if (path == null || path.length() == 0 || path.charAt(0) != '/') {
+			throw new IllegalArgumentException(sm.getString("abstractResourceSet.checkPath", path));
+		}
+	}
 
+	@Override
+	public final void setRoot(WebResourceRoot root)
+	{
+		this.root = root;
+	}
 
-    protected final void checkPath(String path) {
-        if (path == null || path.length() == 0 || path.charAt(0) != '/') {
-            throw new IllegalArgumentException(
-                    sm.getString("abstractResourceSet.checkPath", path));
-        }
-    }
+	protected final WebResourceRoot getRoot()
+	{
+		return root;
+	}
 
-    @Override
-    public final void setRoot(WebResourceRoot root) {
-        this.root = root;
-    }
+	protected final String getInternalPath()
+	{
+		return internalPath;
+	}
 
-    protected final WebResourceRoot getRoot() {
-        return root;
-    }
+	public final void setInternalPath(String internalPath)
+	{
+		checkPath(internalPath);
+		// Optimise internal processing
+		if (internalPath.equals("/")) {
+			this.internalPath = "";
+		} else {
+			this.internalPath = internalPath;
+		}
+	}
 
+	public final void setWebAppMount(String webAppMount)
+	{
+		checkPath(webAppMount);
+		// Optimise internal processing
+		if (webAppMount.equals("/")) {
+			this.webAppMount = "";
+		} else {
+			this.webAppMount = webAppMount;
+		}
+	}
 
-    protected final String getInternalPath() {
-        return internalPath;
-    }
+	protected final String getWebAppMount()
+	{
+		return webAppMount;
+	}
 
-    public final void setInternalPath(String internalPath) {
-        checkPath(internalPath);
-        // Optimise internal processing
-        if (internalPath.equals("/")) {
-            this.internalPath = "";
-        } else {
-            this.internalPath = internalPath;
-        }
-    }
+	public final void setBase(String base)
+	{
+		this.base = base;
+	}
 
-    public final void setWebAppMount(String webAppMount) {
-        checkPath(webAppMount);
-        // Optimise internal processing
-        if (webAppMount.equals("/")) {
-            this.webAppMount = "";
-        } else {
-            this.webAppMount = webAppMount;
-        }
-    }
+	protected final String getBase()
+	{
+		return base;
+	}
 
-    protected final String getWebAppMount() {
-        return webAppMount;
-    }
+	@Override
+	public boolean getClassLoaderOnly()
+	{
+		return classLoaderOnly;
+	}
 
-    public final void setBase(String base) {
-        this.base = base;
-    }
+	@Override
+	public void setClassLoaderOnly(boolean classLoaderOnly)
+	{
+		this.classLoaderOnly = classLoaderOnly;
+	}
 
-    protected final String getBase() {
-        return base;
-    }
+	@Override
+	public boolean getStaticOnly()
+	{
+		return staticOnly;
+	}
 
-    @Override
-    public boolean getClassLoaderOnly() {
-        return classLoaderOnly;
-    }
+	@Override
+	public void setStaticOnly(boolean staticOnly)
+	{
+		this.staticOnly = staticOnly;
+	}
 
-    @Override
-    public void setClassLoaderOnly(boolean classLoaderOnly) {
-        this.classLoaderOnly = classLoaderOnly;
-    }
+	protected final void setManifest(Manifest manifest)
+	{
+		this.manifest = manifest;
+	}
 
-    @Override
-    public boolean getStaticOnly() {
-        return staticOnly;
-    }
+	protected final Manifest getManifest()
+	{
+		return manifest;
+	}
 
-    @Override
-    public void setStaticOnly(boolean staticOnly) {
-        this.staticOnly = staticOnly;
-    }
+	// -------------------------------------------------------- Lifecycle
+	// methods
+	@Override
+	protected final void startInternal() throws LifecycleException
+	{
+		setState(LifecycleState.STARTING);
+	}
 
-    protected final void setManifest(Manifest manifest) {
-        this.manifest = manifest;
-    }
+	@Override
+	protected final void stopInternal() throws LifecycleException
+	{
+		setState(LifecycleState.STOPPING);
+	}
 
-    protected final Manifest getManifest() {
-        return manifest;
-    }
-
-
-    //-------------------------------------------------------- Lifecycle methods
-    @Override
-    protected final void startInternal() throws LifecycleException {
-        setState(LifecycleState.STARTING);
-    }
-
-    @Override
-    protected final void stopInternal() throws LifecycleException {
-        setState(LifecycleState.STOPPING);
-    }
-
-    @Override
-    protected final void destroyInternal() throws LifecycleException {
-        gc();
-    }
+	@Override
+	protected final void destroyInternal() throws LifecycleException
+	{
+		gc();
+	}
 }

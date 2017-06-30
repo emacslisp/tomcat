@@ -34,136 +34,137 @@ import org.apache.tomcat.util.net.ApplicationBufferHandler;
  */
 public class BufferedInputFilter implements InputFilter, ApplicationBufferHandler {
 
-    // -------------------------------------------------------------- Constants
+	// -------------------------------------------------------------- Constants
 
-    private static final String ENCODING_NAME = "buffered";
-    private static final ByteChunk ENCODING = new ByteChunk();
+	private static final String ENCODING_NAME = "buffered";
+	private static final ByteChunk ENCODING = new ByteChunk();
 
+	// ----------------------------------------------------- Instance Variables
 
-    // ----------------------------------------------------- Instance Variables
+	private ByteBuffer buffered;
+	private ByteBuffer tempRead;
+	private InputBuffer buffer;
+	private boolean hasRead = false;
 
-    private ByteBuffer buffered;
-    private ByteBuffer tempRead;
-    private InputBuffer buffer;
-    private boolean hasRead = false;
+	// ----------------------------------------------------- Static Initializer
 
+	static {
+		ENCODING.setBytes(ENCODING_NAME.getBytes(StandardCharsets.ISO_8859_1), 0, ENCODING_NAME.length());
+	}
 
-    // ----------------------------------------------------- Static Initializer
+	// --------------------------------------------------------- Public Methods
 
-    static {
-        ENCODING.setBytes(ENCODING_NAME.getBytes(StandardCharsets.ISO_8859_1),
-                0, ENCODING_NAME.length());
-    }
+	/**
+	 * Set the buffering limit. This should be reset every time the buffer is
+	 * used.
+	 *
+	 * @param limit
+	 *            The maximum number of bytes that will be buffered
+	 */
+	public void setLimit(int limit)
+	{
+		if (buffered == null) {
+			buffered = ByteBuffer.allocate(limit);
+			buffered.flip();
+		}
+	}
 
+	// ---------------------------------------------------- InputBuffer Methods
 
-    // --------------------------------------------------------- Public Methods
+	/**
+	 * Reads the request body and buffers it.
+	 */
+	@Override
+	public void setRequest(Request request)
+	{
+		// save off the Request body
+		try {
+			while (buffer.doRead(this) >= 0) {
+				buffered.mark().position(buffered.limit()).limit(buffered.capacity());
+				buffered.put(tempRead);
+				buffered.limit(buffered.position()).reset();
+				tempRead = null;
+			}
+		} catch (IOException | BufferOverflowException ioe) {
+			// No need for i18n - this isn't going to get logged anywhere
+			throw new IllegalStateException("Request body too large for buffer");
+		}
+	}
 
+	/**
+	 * Fills the given ByteBuffer with the buffered request body.
+	 */
+	@Override
+	public int doRead(ApplicationBufferHandler handler) throws IOException
+	{
+		if (isFinished()) {
+			return -1;
+		}
 
-    /**
-     * Set the buffering limit. This should be reset every time the buffer is
-     * used.
-     *
-     * @param limit The maximum number of bytes that will be buffered
-     */
-    public void setLimit(int limit) {
-        if (buffered == null) {
-            buffered = ByteBuffer.allocate(limit);
-            buffered.flip();
-        }
-    }
+		handler.setByteBuffer(buffered);
+		hasRead = true;
+		return buffered.remaining();
+	}
 
+	@Override
+	public void setBuffer(InputBuffer buffer)
+	{
+		this.buffer = buffer;
+	}
 
-    // ---------------------------------------------------- InputBuffer Methods
+	@Override
+	public void recycle()
+	{
+		if (buffered != null) {
+			if (buffered.capacity() > 65536) {
+				buffered = null;
+			} else {
+				buffered.position(0).limit(0);
+			}
+		}
+		hasRead = false;
+		buffer = null;
+	}
 
+	@Override
+	public ByteChunk getEncodingName()
+	{
+		return ENCODING;
+	}
 
-    /**
-     * Reads the request body and buffers it.
-     */
-    @Override
-    public void setRequest(Request request) {
-        // save off the Request body
-        try {
-            while (buffer.doRead(this) >= 0) {
-                buffered.mark().position(buffered.limit()).limit(buffered.capacity());
-                buffered.put(tempRead);
-                buffered.limit(buffered.position()).reset();
-                tempRead = null;
-            }
-        } catch(IOException | BufferOverflowException ioe) {
-            // No need for i18n - this isn't going to get logged anywhere
-            throw new IllegalStateException(
-                    "Request body too large for buffer");
-        }
-    }
+	@Override
+	public long end() throws IOException
+	{
+		return 0;
+	}
 
-    /**
-     * Fills the given ByteBuffer with the buffered request body.
-     */
-    @Override
-    public int doRead(ApplicationBufferHandler handler) throws IOException {
-        if (isFinished()) {
-            return -1;
-        }
+	@Override
+	public int available()
+	{
+		return buffered.remaining();
+	}
 
-        handler.setByteBuffer(buffered);
-        hasRead = true;
-        return buffered.remaining();
-    }
+	@Override
+	public boolean isFinished()
+	{
+		return hasRead || buffered.remaining() <= 0;
+	}
 
-    @Override
-    public void setBuffer(InputBuffer buffer) {
-        this.buffer = buffer;
-    }
+	@Override
+	public void setByteBuffer(ByteBuffer buffer)
+	{
+		tempRead = buffer;
+	}
 
-    @Override
-    public void recycle() {
-        if (buffered != null) {
-            if (buffered.capacity() > 65536) {
-                buffered = null;
-            } else {
-                buffered.position(0).limit(0);
-            }
-        }
-        hasRead = false;
-        buffer = null;
-    }
+	@Override
+	public ByteBuffer getByteBuffer()
+	{
+		return tempRead;
+	}
 
-    @Override
-    public ByteChunk getEncodingName() {
-        return ENCODING;
-    }
-
-    @Override
-    public long end() throws IOException {
-        return 0;
-    }
-
-    @Override
-    public int available() {
-        return buffered.remaining();
-    }
-
-
-    @Override
-    public boolean isFinished() {
-        return hasRead || buffered.remaining() <= 0;
-    }
-
-
-    @Override
-    public void setByteBuffer(ByteBuffer buffer) {
-        tempRead = buffer;
-    }
-
-
-    @Override
-    public ByteBuffer getByteBuffer() {
-        return tempRead;
-    }
-
-
-    @Override
-    public void expand(int size) {
-        // no-op
-    }
+	@Override
+	public void expand(int size)
+	{
+		// no-op
+	}
 }

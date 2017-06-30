@@ -25,112 +25,122 @@ import org.apache.tomcat.util.buf.MessageBytes;
 
 public class Host {
 
-    /**
-     * Parse the given input as a HTTP Host header value.
-     *
-     * @param mb The host header value
-     *
-     * @return The position of ':' that separates the host from the port or -1
-     *         if it is not present
-     *
-     * @throws IllegalArgumentException If the host header value is not
-     *         specification compliant
-     *
-     * @throws IOException If a problem occurs reading the data from the input
-     */
-    public static int parse(MessageBytes mb) throws IOException {
-        return parse(new MessageBytesReader(mb));
-    }
+	/**
+	 * Parse the given input as a HTTP Host header value.
+	 *
+	 * @param mb
+	 *            The host header value
+	 *
+	 * @return The position of ':' that separates the host from the port or -1
+	 *         if it is not present
+	 *
+	 * @throws IllegalArgumentException
+	 *             If the host header value is not specification compliant
+	 *
+	 * @throws IOException
+	 *             If a problem occurs reading the data from the input
+	 */
+	public static int parse(MessageBytes mb) throws IOException
+	{
+		return parse(new MessageBytesReader(mb));
+	}
 
+	/**
+	 * Parse the given input as a HTTP Host header value.
+	 *
+	 * @param string
+	 *            The host header value
+	 *
+	 * @return The position of ':' that separates the host from the port or -1
+	 *         if it is not present
+	 *
+	 * @throws IllegalArgumentException
+	 *             If the host header value is not specification compliant
+	 *
+	 * @throws IOException
+	 *             If a problem occurs reading the data from the input
+	 */
+	public static int parse(String string) throws IOException
+	{
+		return parse(new StringReader(string));
+	}
 
-    /**
-     * Parse the given input as a HTTP Host header value.
-     *
-     * @param string The host header value
-     *
-     * @return The position of ':' that separates the host from the port or -1
-     *         if it is not present
-     *
-     * @throws IllegalArgumentException If the host header value is not
-     *         specification compliant
-     *
-     * @throws IOException If a problem occurs reading the data from the input
-     */
-    public static int parse(String string) throws IOException {
-        return parse(new StringReader(string));
-    }
+	private static int parse(Reader reader) throws IOException
+	{
+		reader.mark(1);
+		int first = reader.read();
+		reader.reset();
+		if (HttpParser.isAlpha(first)) {
+			return HttpParser.readHostDomainName(reader);
+		} else if (HttpParser.isNumeric(first)) {
+			return HttpParser.readHostIPv4(reader, false);
+		} else if ('[' == first) {
+			return HttpParser.readHostIPv6(reader);
+		} else {
+			// Invalid
+			throw new IllegalArgumentException();
+		}
+	}
 
+	private static class MessageBytesReader extends Reader {
 
-    private static int parse(Reader reader) throws IOException {
-        reader.mark(1);
-        int first = reader.read();
-        reader.reset();
-        if (HttpParser.isAlpha(first)) {
-            return HttpParser.readHostDomainName(reader);
-        } else if (HttpParser.isNumeric(first)) {
-            return HttpParser.readHostIPv4(reader, false);
-        } else if ('[' == first) {
-            return HttpParser.readHostIPv6(reader);
-        } else {
-            // Invalid
-            throw new IllegalArgumentException();
-        }
-    }
+		private final byte[] bytes;
+		private final int end;
+		private int pos;
+		private int mark;
 
+		public MessageBytesReader(MessageBytes mb) {
+			ByteChunk bc = mb.getByteChunk();
+			bytes = bc.getBytes();
+			pos = bc.getOffset();
+			end = bc.getEnd();
+		}
 
-    private static class MessageBytesReader extends Reader {
+		@Override
+		public int read(char[] cbuf, int off, int len) throws IOException
+		{
+			for (int i = off; i < off + len; i++) {
+				cbuf[i] = (char) bytes[pos++];
+			}
+			return len;
+		}
 
-        private final byte[] bytes;
-        private final int end;
-        private int pos;
-        private int mark;
+		@Override
+		public void close() throws IOException
+		{
+			// NO-OP
+		}
 
-        public MessageBytesReader(MessageBytes mb) {
-            ByteChunk bc = mb.getByteChunk();
-            bytes = bc.getBytes();
-            pos = bc.getOffset();
-            end = bc.getEnd();
-        }
+		// Over-ridden methods to improve performance
 
-        @Override
-        public int read(char[] cbuf, int off, int len) throws IOException {
-            for (int i = off; i < off + len; i++) {
-                cbuf[i] = (char) bytes[pos++];
-            }
-            return len;
-        }
+		@Override
+		public int read() throws IOException
+		{
+			if (pos < end) {
+				return bytes[pos++];
+			} else {
+				return -1;
+			}
+		}
 
-        @Override
-        public void close() throws IOException {
-            // NO-OP
-        }
+		// Methods to support mark/reset
 
-        // Over-ridden methods to improve performance
+		@Override
+		public boolean markSupported()
+		{
+			return true;
+		}
 
-        @Override
-        public int read() throws IOException {
-            if (pos < end) {
-                return bytes[pos++];
-            } else {
-                return -1;
-            }
-        }
+		@Override
+		public void mark(int readAheadLimit) throws IOException
+		{
+			mark = pos;
+		}
 
-        // Methods to support mark/reset
-
-        @Override
-        public boolean markSupported() {
-            return true;
-        }
-
-        @Override
-        public void mark(int readAheadLimit) throws IOException {
-            mark = pos;
-        }
-
-        @Override
-        public void reset() throws IOException {
-            pos = mark;
-        }
-    }
+		@Override
+		public void reset() throws IOException
+		{
+			pos = mark;
+		}
+	}
 }

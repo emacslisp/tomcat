@@ -16,8 +16,6 @@
  */
 package org.apache.tomcat.util.descriptor.web;
 
-
-
 /**
  * Defines an interface for the object that is added to the representation of a
  * JNDI resource in web.xml to enable it to also be the implementation of that
@@ -27,14 +25,17 @@ package org.apache.tomcat.util.descriptor.web;
  */
 public interface NamingResources {
 
-    void addEnvironment(ContextEnvironment ce);
-    void removeEnvironment(String name);
+	void addEnvironment(ContextEnvironment ce);
 
-    void addResource(ContextResource cr);
-    void removeResource(String name);
+	void removeEnvironment(String name);
 
-    void addResourceLink(ContextResourceLink crl);
-    void removeResourceLink(String name);
+	void addResource(ContextResource cr);
 
-    Object getContainer();
+	void removeResource(String name);
+
+	void addResourceLink(ContextResourceLink crl);
+
+	void removeResourceLink(String name);
+
+	Object getContainer();
 }

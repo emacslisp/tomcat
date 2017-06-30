@@ -15,15 +15,12 @@
  * limitations under the License.
  */
 
-
 package org.apache.catalina.ant.jmx;
-
 
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
 import org.apache.tools.ant.BuildException;
-
 
 /**
  * Access <em>JMX</em> JSR 160 MBeans Server.
@@ -33,10 +30,11 @@ import org.apache.tools.ant.BuildException;
  * <li>Bind Get result as Ant properties</li>
  * </ul>
  * <p>
- * Examples:
- * <br>
- * Get a Mbean IDataSender attribute nrOfRequests and create a new ant property <em>IDataSender.9025.nrOfRequests</em>
+ * Examples: <br>
+ * Get a Mbean IDataSender attribute nrOfRequests and create a new ant property
+ * <em>IDataSender.9025.nrOfRequests</em>
  * </p>
+ * 
  * <pre>
  *   &lt;jmx:get
  *           ref="jmx.server"
@@ -47,7 +45,8 @@ import org.apache.tools.ant.BuildException;
  *       /&gt;
  * </pre>
  * <p>
- * First call to a remote MBeanserver save the JMXConnection a referenz <em>jmx.server</em>
+ * First call to a remote MBeanserver save the JMXConnection a referenz
+ * <em>jmx.server</em>
  * </p>
  * These tasks require Ant 1.6 or later interface.
  *
@@ -56,65 +55,67 @@ import org.apache.tools.ant.BuildException;
  */
 public class JMXAccessorGetTask extends JMXAccessorTask {
 
+	// ----------------------------------------------------- Instance Variables
 
-    // ----------------------------------------------------- Instance Variables
+	private String attribute;
 
-    private String attribute;
+	// ------------------------------------------------------------- Properties
 
-    // ------------------------------------------------------------- Properties
+	/**
+	 * @return Returns the attribute.
+	 */
+	public String getAttribute()
+	{
+		return attribute;
+	}
 
-    /**
-     * @return Returns the attribute.
-     */
-    public String getAttribute() {
-        return attribute;
-    }
+	/**
+	 * @param attribute
+	 *            The attribute to set.
+	 */
+	public void setAttribute(String attribute)
+	{
+		this.attribute = attribute;
+	}
 
-    /**
-     * @param attribute The attribute to set.
-     */
-    public void setAttribute(String attribute) {
-        this.attribute = attribute;
-    }
+	// ------------------------------------------------------ protected Methods
 
+	@Override
+	public String jmxExecute(MBeanServerConnection jmxServerConnection) throws Exception
+	{
 
-    // ------------------------------------------------------ protected Methods
+		if (getName() == null) {
+			throw new BuildException("Must specify a 'name'");
+		}
+		if ((attribute == null)) {
+			throw new BuildException("Must specify a 'attribute' for get");
+		}
+		return jmxGet(jmxServerConnection, getName());
+	}
 
-    @Override
-    public String jmxExecute(MBeanServerConnection jmxServerConnection)
-        throws Exception {
-
-        if (getName() == null) {
-            throw new BuildException("Must specify a 'name'");
-        }
-        if ((attribute == null)) {
-            throw new BuildException(
-                    "Must specify a 'attribute' for get");
-        }
-        return  jmxGet(jmxServerConnection, getName());
-     }
-
-
-    /**
-     * Get property value.
-     *
-     * @param jmxServerConnection Connection to the JMX server
-     * @param name The MBean name
-     * @return The error message if any
-     * @throws Exception An error occurred
-     */
-    protected String jmxGet(MBeanServerConnection jmxServerConnection, String name) throws Exception {
-        String error = null;
-        if(isEcho()) {
-            handleOutput("MBean " + name + " get attribute " + attribute );
-        }
-        Object result = jmxServerConnection.getAttribute(
-                new ObjectName(name), attribute);
-        if (result != null) {
-            echoResult(attribute,result);
-            createProperty(result);
-        } else
-            error = "Attribute " + attribute + " is empty";
-        return error;
-    }
+	/**
+	 * Get property value.
+	 *
+	 * @param jmxServerConnection
+	 *            Connection to the JMX server
+	 * @param name
+	 *            The MBean name
+	 * @return The error message if any
+	 * @throws Exception
+	 *             An error occurred
+	 */
+	protected String jmxGet(MBeanServerConnection jmxServerConnection, String name) throws Exception
+	{
+		String error = null;
+		if (isEcho()) {
+			handleOutput("MBean " + name + " get attribute " + attribute);
+		}
+		Object result = jmxServerConnection.getAttribute(new ObjectName(name), attribute);
+		if (result != null) {
+			echoResult(attribute, result);
+			createProperty(result);
+		} else
+			error = "Attribute " + attribute + " is empty";
+		return error;
+	}
 }

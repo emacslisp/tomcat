@@ -33,73 +33,75 @@ import org.apache.tomcat.util.net.jsse.JSSEUtil;
 
 public class OpenSSLUtil extends SSLUtilBase {
 
-    private static final Log log = LogFactory.getLog(OpenSSLUtil.class);
+	private static final Log log = LogFactory.getLog(OpenSSLUtil.class);
 
-    private final JSSEUtil jsseUtil;
+	private final JSSEUtil jsseUtil;
 
-    public OpenSSLUtil(SSLHostConfigCertificate certificate) {
-        super(certificate);
+	public OpenSSLUtil(SSLHostConfigCertificate certificate) {
+		super(certificate);
 
-        if (certificate.getCertificateFile() == null) {
-            // Using JSSE configuration for keystore and truststore
-            jsseUtil = new JSSEUtil(certificate);
-        } else {
-            // Use OpenSSL configuration for certificates
-            jsseUtil = null;
-        }
-    }
+		if (certificate.getCertificateFile() == null) {
+			// Using JSSE configuration for keystore and truststore
+			jsseUtil = new JSSEUtil(certificate);
+		} else {
+			// Use OpenSSL configuration for certificates
+			jsseUtil = null;
+		}
+	}
 
+	@Override
+	protected Log getLog()
+	{
+		return log;
+	}
 
-    @Override
-    protected Log getLog() {
-        return log;
-    }
+	@Override
+	protected Set<String> getImplementedProtocols()
+	{
+		return OpenSSLEngine.IMPLEMENTED_PROTOCOLS_SET;
+	}
 
+	@Override
+	protected Set<String> getImplementedCiphers()
+	{
+		return OpenSSLEngine.AVAILABLE_CIPHER_SUITES;
+	}
 
-    @Override
-    protected Set<String> getImplementedProtocols() {
-        return OpenSSLEngine.IMPLEMENTED_PROTOCOLS_SET;
-    }
+	@Override
+	public SSLContext createSSLContext(List<String> negotiableProtocols) throws Exception
+	{
+		return new OpenSSLContext(certificate, negotiableProtocols);
+	}
 
+	@Override
+	public KeyManager[] getKeyManagers() throws Exception
+	{
+		if (jsseUtil != null) {
+			return jsseUtil.getKeyManagers();
+		} else {
+			// Return something although it is not actually used
+			KeyManager[] managers = {
+					new OpenSSLKeyManager(SSLHostConfig.adjustRelativePath(certificate.getCertificateFile()),
+							SSLHostConfig.adjustRelativePath(certificate.getCertificateKeyFile())) };
+			return managers;
+		}
+	}
 
-    @Override
-    protected Set<String> getImplementedCiphers() {
-        return OpenSSLEngine.AVAILABLE_CIPHER_SUITES;
-    }
+	@Override
+	public TrustManager[] getTrustManagers() throws Exception
+	{
+		if (jsseUtil != null) {
+			return jsseUtil.getTrustManagers();
+		} else {
+			return null;
+		}
+	}
 
-
-    @Override
-    public SSLContext createSSLContext(List<String> negotiableProtocols) throws Exception {
-        return new OpenSSLContext(certificate, negotiableProtocols);
-    }
-
-    @Override
-    public KeyManager[] getKeyManagers() throws Exception {
-        if (jsseUtil != null) {
-            return jsseUtil.getKeyManagers();
-        } else {
-            // Return something although it is not actually used
-            KeyManager[] managers = {
-                    new OpenSSLKeyManager(SSLHostConfig.adjustRelativePath(certificate.getCertificateFile()),
-                            SSLHostConfig.adjustRelativePath(certificate.getCertificateKeyFile()))
-            };
-            return managers;
-        }
-    }
-
-    @Override
-    public TrustManager[] getTrustManagers() throws Exception {
-        if (jsseUtil != null) {
-            return jsseUtil.getTrustManagers();
-        } else {
-            return null;
-        }
-    }
-
-    @Override
-    public void configureSessionContext(SSLSessionContext sslSessionContext) {
-        if (jsseUtil != null) {
-            jsseUtil.configureSessionContext(sslSessionContext);
-        }
-    }
+	@Override
+	public void configureSessionContext(SSLSessionContext sslSessionContext)
+	{
+		if (jsseUtil != null) {
+			jsseUtil.configureSessionContext(sslSessionContext);
+		}
+	}
 }

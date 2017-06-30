@@ -35,269 +35,270 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public class CoyoteInputStream extends ServletInputStream {
 
-    protected static final StringManager sm = StringManager.getManager(CoyoteInputStream.class);
+	protected static final StringManager sm = StringManager.getManager(CoyoteInputStream.class);
 
+	protected InputBuffer ib;
 
-    protected InputBuffer ib;
+	protected CoyoteInputStream(InputBuffer ib) {
+		this.ib = ib;
+	}
 
+	/**
+	 * Clear facade.
+	 */
+	void clear()
+	{
+		ib = null;
+	}
 
-    protected CoyoteInputStream(InputBuffer ib) {
-        this.ib = ib;
-    }
+	/**
+	 * Prevent cloning the facade.
+	 */
+	@Override
+	protected Object clone() throws CloneNotSupportedException
+	{
+		throw new CloneNotSupportedException();
+	}
 
+	@Override
+	public int read() throws IOException
+	{
+		checkNonBlockingRead();
 
-    /**
-     * Clear facade.
-     */
-    void clear() {
-        ib = null;
-    }
+		if (SecurityUtil.isPackageProtectionEnabled()) {
 
+			try {
+				Integer result = AccessController.doPrivileged(new PrivilegedRead(ib));
+				return result.intValue();
+			} catch (PrivilegedActionException pae) {
+				Exception e = pae.getException();
+				if (e instanceof IOException) {
+					throw (IOException) e;
+				} else {
+					throw new RuntimeException(e.getMessage(), e);
+				}
+			}
+		} else {
+			return ib.readByte();
+		}
+	}
 
-    /**
-     * Prevent cloning the facade.
-     */
-    @Override
-    protected Object clone() throws CloneNotSupportedException {
-        throw new CloneNotSupportedException();
-    }
+	@Override
+	public int available() throws IOException
+	{
 
+		if (SecurityUtil.isPackageProtectionEnabled()) {
+			try {
+				Integer result = AccessController.doPrivileged(new PrivilegedAvailable(ib));
+				return result.intValue();
+			} catch (PrivilegedActionException pae) {
+				Exception e = pae.getException();
+				if (e instanceof IOException) {
+					throw (IOException) e;
+				} else {
+					throw new RuntimeException(e.getMessage(), e);
+				}
+			}
+		} else {
+			return ib.available();
+		}
+	}
 
-    @Override
-    public int read() throws IOException {
-        checkNonBlockingRead();
+	@Override
+	public int read(final byte[] b) throws IOException
+	{
+		return read(b, 0, b.length);
+	}
 
-        if (SecurityUtil.isPackageProtectionEnabled()) {
+	@Override
+	public int read(final byte[] b, final int off, final int len) throws IOException
+	{
+		checkNonBlockingRead();
 
-            try {
-                Integer result = AccessController.doPrivileged(new PrivilegedRead(ib));
-                return result.intValue();
-            } catch (PrivilegedActionException pae) {
-                Exception e = pae.getException();
-                if (e instanceof IOException) {
-                    throw (IOException) e;
-                } else {
-                    throw new RuntimeException(e.getMessage(), e);
-                }
-            }
-        } else {
-            return ib.readByte();
-        }
-    }
+		if (SecurityUtil.isPackageProtectionEnabled()) {
+			try {
+				Integer result = AccessController.doPrivileged(new PrivilegedReadArray(ib, b, off, len));
+				return result.intValue();
+			} catch (PrivilegedActionException pae) {
+				Exception e = pae.getException();
+				if (e instanceof IOException) {
+					throw (IOException) e;
+				} else {
+					throw new RuntimeException(e.getMessage(), e);
+				}
+			}
+		} else {
+			return ib.read(b, off, len);
+		}
+	}
 
-    @Override
-    public int available() throws IOException {
+	/**
+	 * Transfers bytes from the buffer to the specified ByteBuffer. After the
+	 * operation the position of the ByteBuffer will be returned to the one
+	 * before the operation, the limit will be the position incremented by the
+	 * number of the transfered bytes.
+	 *
+	 * @param b
+	 *            the ByteBuffer into which bytes are to be written.
+	 * @return an integer specifying the actual number of bytes read, or -1 if
+	 *         the end of the stream is reached
+	 * @throws IOException
+	 *             if an input or output exception has occurred
+	 */
+	public int read(final ByteBuffer b) throws IOException
+	{
+		checkNonBlockingRead();
 
-        if (SecurityUtil.isPackageProtectionEnabled()) {
-            try {
-                Integer result = AccessController.doPrivileged(new PrivilegedAvailable(ib));
-                return result.intValue();
-            } catch (PrivilegedActionException pae) {
-                Exception e = pae.getException();
-                if (e instanceof IOException) {
-                    throw (IOException) e;
-                } else {
-                    throw new RuntimeException(e.getMessage(), e);
-                }
-            }
-        } else {
-            return ib.available();
-        }
-    }
+		if (SecurityUtil.isPackageProtectionEnabled()) {
+			try {
+				Integer result = AccessController.doPrivileged(new PrivilegedReadBuffer(ib, b));
+				return result.intValue();
+			} catch (PrivilegedActionException pae) {
+				Exception e = pae.getException();
+				if (e instanceof IOException) {
+					throw (IOException) e;
+				} else {
+					throw new RuntimeException(e.getMessage(), e);
+				}
+			}
+		} else {
+			return ib.read(b);
+		}
+	}
 
-    @Override
-    public int read(final byte[] b) throws IOException {
-        return read(b, 0, b.length);
-    }
+	/**
+	 * Close the stream Since we re-cycle, we can't allow the call to
+	 * super.close() which would permanently disable us.
+	 */
+	@Override
+	public void close() throws IOException
+	{
 
+		if (SecurityUtil.isPackageProtectionEnabled()) {
+			try {
+				AccessController.doPrivileged(new PrivilegedClose(ib));
+			} catch (PrivilegedActionException pae) {
+				Exception e = pae.getException();
+				if (e instanceof IOException) {
+					throw (IOException) e;
+				} else {
+					throw new RuntimeException(e.getMessage(), e);
+				}
+			}
+		} else {
+			ib.close();
+		}
+	}
 
-    @Override
-    public int read(final byte[] b, final int off, final int len) throws IOException {
-        checkNonBlockingRead();
+	@Override
+	public boolean isFinished()
+	{
+		return ib.isFinished();
+	}
 
-        if (SecurityUtil.isPackageProtectionEnabled()) {
-            try {
-                Integer result = AccessController.doPrivileged(
-                        new PrivilegedReadArray(ib, b, off, len));
-                return result.intValue();
-            } catch (PrivilegedActionException pae) {
-                Exception e = pae.getException();
-                if (e instanceof IOException) {
-                    throw (IOException) e;
-                } else {
-                    throw new RuntimeException(e.getMessage(), e);
-                }
-            }
-        } else {
-            return ib.read(b, off, len);
-        }
-    }
+	@Override
+	public boolean isReady()
+	{
+		return ib.isReady();
+	}
 
+	@Override
+	public void setReadListener(ReadListener listener)
+	{
+		ib.setReadListener(listener);
+	}
 
-    /**
-     * Transfers bytes from the buffer to the specified ByteBuffer. After the
-     * operation the position of the ByteBuffer will be returned to the one
-     * before the operation, the limit will be the position incremented by
-     * the number of the transfered bytes.
-     *
-     * @param b the ByteBuffer into which bytes are to be written.
-     * @return an integer specifying the actual number of bytes read, or -1 if
-     *         the end of the stream is reached
-     * @throws IOException if an input or output exception has occurred
-     */
-    public int read(final ByteBuffer b) throws IOException {
-        checkNonBlockingRead();
+	private void checkNonBlockingRead()
+	{
+		if (!ib.isBlocking() && !ib.isReady()) {
+			throw new IllegalStateException(sm.getString("coyoteInputStream.nbNotready"));
+		}
+	}
 
-        if (SecurityUtil.isPackageProtectionEnabled()) {
-            try {
-                Integer result = AccessController.doPrivileged(new PrivilegedReadBuffer(ib, b));
-                return result.intValue();
-            } catch (PrivilegedActionException pae) {
-                Exception e = pae.getException();
-                if (e instanceof IOException) {
-                    throw (IOException) e;
-                } else {
-                    throw new RuntimeException(e.getMessage(), e);
-                }
-            }
-        } else {
-            return ib.read(b);
-        }
-    }
+	private static class PrivilegedAvailable implements PrivilegedExceptionAction<Integer> {
 
+		private final InputBuffer inputBuffer;
 
-    /**
-     * Close the stream
-     * Since we re-cycle, we can't allow the call to super.close()
-     * which would permanently disable us.
-     */
-    @Override
-    public void close() throws IOException {
+		public PrivilegedAvailable(InputBuffer inputBuffer) {
+			this.inputBuffer = inputBuffer;
+		}
 
-        if (SecurityUtil.isPackageProtectionEnabled()) {
-            try {
-                AccessController.doPrivileged(new PrivilegedClose(ib));
-            } catch (PrivilegedActionException pae) {
-                Exception e = pae.getException();
-                if (e instanceof IOException) {
-                    throw (IOException) e;
-                } else {
-                    throw new RuntimeException(e.getMessage(), e);
-                }
-            }
-        } else {
-            ib.close();
-        }
-    }
+		@Override
+		public Integer run() throws IOException
+		{
+			return Integer.valueOf(inputBuffer.available());
+		}
+	}
 
-    @Override
-    public boolean isFinished() {
-        return ib.isFinished();
-    }
+	private static class PrivilegedClose implements PrivilegedExceptionAction<Void> {
 
+		private final InputBuffer inputBuffer;
 
-    @Override
-    public boolean isReady() {
-        return ib.isReady();
-    }
+		public PrivilegedClose(InputBuffer inputBuffer) {
+			this.inputBuffer = inputBuffer;
+		}
 
+		@Override
+		public Void run() throws IOException
+		{
+			inputBuffer.close();
+			return null;
+		}
+	}
 
-    @Override
-    public void setReadListener(ReadListener listener) {
-        ib.setReadListener(listener);
-    }
+	private static class PrivilegedRead implements PrivilegedExceptionAction<Integer> {
 
+		private final InputBuffer inputBuffer;
 
-    private void checkNonBlockingRead() {
-        if (!ib.isBlocking() && !ib.isReady()) {
-            throw new IllegalStateException(sm.getString("coyoteInputStream.nbNotready"));
-        }
-    }
+		public PrivilegedRead(InputBuffer inputBuffer) {
+			this.inputBuffer = inputBuffer;
+		}
 
+		@Override
+		public Integer run() throws IOException
+		{
+			Integer integer = Integer.valueOf(inputBuffer.readByte());
+			return integer;
+		}
+	}
 
-    private static class PrivilegedAvailable implements PrivilegedExceptionAction<Integer> {
+	private static class PrivilegedReadArray implements PrivilegedExceptionAction<Integer> {
 
-        private final InputBuffer inputBuffer;
+		private final InputBuffer inputBuffer;
+		private final byte[] buf;
+		private final int off;
+		private final int len;
 
-        public PrivilegedAvailable(InputBuffer inputBuffer) {
-            this.inputBuffer = inputBuffer;
-        }
+		public PrivilegedReadArray(InputBuffer inputBuffer, byte[] buf, int off, int len) {
+			this.inputBuffer = inputBuffer;
+			this.buf = buf;
+			this.off = off;
+			this.len = len;
+		}
 
-        @Override
-        public Integer run() throws IOException {
-            return Integer.valueOf(inputBuffer.available());
-        }
-    }
+		@Override
+		public Integer run() throws IOException
+		{
+			Integer integer = Integer.valueOf(inputBuffer.read(buf, off, len));
+			return integer;
+		}
+	}
 
+	private static class PrivilegedReadBuffer implements PrivilegedExceptionAction<Integer> {
 
-    private static class PrivilegedClose implements PrivilegedExceptionAction<Void> {
+		private final InputBuffer inputBuffer;
+		private final ByteBuffer bb;
 
-        private final InputBuffer inputBuffer;
+		public PrivilegedReadBuffer(InputBuffer inputBuffer, ByteBuffer bb) {
+			this.inputBuffer = inputBuffer;
+			this.bb = bb;
+		}
 
-        public PrivilegedClose(InputBuffer inputBuffer) {
-            this.inputBuffer = inputBuffer;
-        }
-
-        @Override
-        public Void run() throws IOException {
-            inputBuffer.close();
-            return null;
-        }
-    }
-
-
-    private static class PrivilegedRead implements PrivilegedExceptionAction<Integer> {
-
-        private final InputBuffer inputBuffer;
-
-        public PrivilegedRead(InputBuffer inputBuffer) {
-            this.inputBuffer = inputBuffer;
-        }
-
-        @Override
-        public Integer run() throws IOException {
-            Integer integer = Integer.valueOf(inputBuffer.readByte());
-            return integer;
-        }
-    }
-
-
-    private static class PrivilegedReadArray implements PrivilegedExceptionAction<Integer> {
-
-        private final InputBuffer inputBuffer;
-        private final byte[] buf;
-        private final int off;
-        private final int len;
-
-        public PrivilegedReadArray(InputBuffer inputBuffer, byte[] buf, int off, int len) {
-            this.inputBuffer = inputBuffer;
-            this.buf = buf;
-            this.off = off;
-            this.len = len;
-        }
-
-        @Override
-        public Integer run() throws IOException {
-            Integer integer = Integer.valueOf(inputBuffer.read(buf, off, len));
-            return integer;
-        }
-    }
-
-
-    private static class PrivilegedReadBuffer implements PrivilegedExceptionAction<Integer> {
-
-        private final InputBuffer inputBuffer;
-        private final ByteBuffer bb;
-
-        public PrivilegedReadBuffer(InputBuffer inputBuffer, ByteBuffer bb) {
-            this.inputBuffer = inputBuffer;
-            this.bb = bb;
-        }
-
-        @Override
-        public Integer run() throws IOException {
-            Integer integer = Integer.valueOf(inputBuffer.read(bb));
-            return integer;
-        }
-    }
+		@Override
+		public Integer run() throws IOException
+		{
+			Integer integer = Integer.valueOf(inputBuffer.read(bb));
+			return integer;
+		}
+	}
 }

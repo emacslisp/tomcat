@@ -36,302 +36,314 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
 /**
- * The message dispatcher is a way to enable asynchronous communication
- * through a channel. The dispatcher will look for the
+ * The message dispatcher is a way to enable asynchronous communication through
+ * a channel. The dispatcher will look for the
  * <code>Channel.SEND_OPTIONS_ASYNCHRONOUS</code> flag to be set, if it is, it
  * will queue the message for delivery and immediately return to the sender.
  */
-public class MessageDispatchInterceptor extends ChannelInterceptorBase
-        implements MessageDispatchInterceptorMBean {
+public class MessageDispatchInterceptor extends ChannelInterceptorBase implements MessageDispatchInterceptorMBean {
 
-    private static final Log log = LogFactory.getLog(MessageDispatchInterceptor.class);
-    protected static final StringManager sm =
-            StringManager.getManager(MessageDispatchInterceptor.class);
+	private static final Log log = LogFactory.getLog(MessageDispatchInterceptor.class);
+	protected static final StringManager sm = StringManager.getManager(MessageDispatchInterceptor.class);
 
-    protected long maxQueueSize = 1024*1024*64; //64MB
-    protected volatile boolean run = false;
-    protected boolean useDeepClone = true;
-    protected boolean alwaysSend = true;
+	protected long maxQueueSize = 1024 * 1024 * 64; // 64MB
+	protected volatile boolean run = false;
+	protected boolean useDeepClone = true;
+	protected boolean alwaysSend = true;
 
-    protected final AtomicLong currentSize = new AtomicLong(0);
-    protected ExecutorService executor = null;
-    protected int maxThreads = 10;
-    protected int maxSpareThreads = 2;
-    protected long keepAliveTime = 5000;
+	protected final AtomicLong currentSize = new AtomicLong(0);
+	protected ExecutorService executor = null;
+	protected int maxThreads = 10;
+	protected int maxSpareThreads = 2;
+	protected long keepAliveTime = 5000;
 
+	public MessageDispatchInterceptor() {
+		setOptionFlag(Channel.SEND_OPTIONS_ASYNCHRONOUS);
+	}
 
-    public MessageDispatchInterceptor() {
-        setOptionFlag(Channel.SEND_OPTIONS_ASYNCHRONOUS);
-    }
+	@Override
+	public void sendMessage(Member[] destination, ChannelMessage msg, InterceptorPayload payload)
+			throws ChannelException
+	{
+		boolean async = (msg.getOptions() & Channel.SEND_OPTIONS_ASYNCHRONOUS) == Channel.SEND_OPTIONS_ASYNCHRONOUS;
+		if (async && run) {
+			if ((getCurrentSize() + msg.getMessage().getLength()) > maxQueueSize) {
+				if (alwaysSend) {
+					super.sendMessage(destination, msg, payload);
+					return;
+				} else {
+					throw new ChannelException(sm.getString("messageDispatchInterceptor.queue.full",
+							Long.toString(maxQueueSize), Long.toString(getCurrentSize())));
+				}
+			}
+			// add to queue
+			if (useDeepClone) {
+				msg = (ChannelMessage) msg.deepclone();
+			}
+			if (!addToQueue(msg, destination, payload)) {
+				throw new ChannelException(sm.getString("messageDispatchInterceptor.unableAdd.queue"));
+			}
+			addAndGetCurrentSize(msg.getMessage().getLength());
+		} else {
+			super.sendMessage(destination, msg, payload);
+		}
+	}
 
+	public boolean addToQueue(final ChannelMessage msg, final Member[] destination, final InterceptorPayload payload)
+	{
+		Runnable r = new Runnable() {
+			@Override
+			public void run()
+			{
+				sendAsyncData(msg, destination, payload);
+			}
+		};
+		executor.execute(r);
+		return true;
+	}
 
-    @Override
-    public void sendMessage(Member[] destination, ChannelMessage msg, InterceptorPayload payload)
-            throws ChannelException {
-        boolean async = (msg.getOptions() &
-                Channel.SEND_OPTIONS_ASYNCHRONOUS) == Channel.SEND_OPTIONS_ASYNCHRONOUS;
-        if (async && run) {
-            if ((getCurrentSize()+msg.getMessage().getLength()) > maxQueueSize) {
-                if (alwaysSend) {
-                    super.sendMessage(destination,msg,payload);
-                    return;
-                } else {
-                    throw new ChannelException(sm.getString("messageDispatchInterceptor.queue.full",
-                            Long.toString(maxQueueSize), Long.toString(getCurrentSize())));
-                }
-            }
-            //add to queue
-            if (useDeepClone) {
-                msg = (ChannelMessage)msg.deepclone();
-            }
-            if (!addToQueue(msg, destination, payload)) {
-                throw new ChannelException(
-                        sm.getString("messageDispatchInterceptor.unableAdd.queue"));
-            }
-            addAndGetCurrentSize(msg.getMessage().getLength());
-        } else {
-            super.sendMessage(destination, msg, payload);
-        }
-    }
+	public void startQueue()
+	{
+		if (run) {
+			return;
+		}
+		String channelName = "";
+		if (getChannel().getName() != null)
+			channelName = "[" + getChannel().getName() + "]";
+		executor = ExecutorFactory.newThreadPool(maxSpareThreads, maxThreads, keepAliveTime, TimeUnit.MILLISECONDS,
+				new TcclThreadFactory("MessageDispatchInterceptor.MessageDispatchThread" + channelName));
+		run = true;
+	}
 
+	public void stopQueue()
+	{
+		run = false;
+		executor.shutdownNow();
+		setAndGetCurrentSize(0);
+	}
 
-    public boolean addToQueue(final ChannelMessage msg, final Member[] destination,
-            final InterceptorPayload payload) {
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                sendAsyncData(msg, destination, payload);
-            }
-        };
-        executor.execute(r);
-        return true;
-    }
+	@Override
+	public void setOptionFlag(int flag)
+	{
+		if (flag != Channel.SEND_OPTIONS_ASYNCHRONOUS) {
+			log.warn(sm.getString("messageDispatchInterceptor.warning.optionflag"));
+		}
+		super.setOptionFlag(flag);
+	}
 
+	public void setMaxQueueSize(long maxQueueSize)
+	{
+		this.maxQueueSize = maxQueueSize;
+	}
 
-    public void startQueue() {
-        if (run) {
-            return;
-        }
-        String channelName = "";
-        if (getChannel().getName() != null) channelName = "[" + getChannel().getName() + "]";
-        executor = ExecutorFactory.newThreadPool(maxSpareThreads, maxThreads, keepAliveTime,
-                TimeUnit.MILLISECONDS,
-                new TcclThreadFactory("MessageDispatchInterceptor.MessageDispatchThread" + channelName));
-        run = true;
-    }
+	public void setUseDeepClone(boolean useDeepClone)
+	{
+		this.useDeepClone = useDeepClone;
+	}
 
+	@Override
+	public long getMaxQueueSize()
+	{
+		return maxQueueSize;
+	}
 
-    public void stopQueue() {
-        run = false;
-        executor.shutdownNow();
-        setAndGetCurrentSize(0);
-    }
+	public boolean getUseDeepClone()
+	{
+		return useDeepClone;
+	}
 
+	@Override
+	public long getCurrentSize()
+	{
+		return currentSize.get();
+	}
 
-    @Override
-    public void setOptionFlag(int flag) {
-        if ( flag != Channel.SEND_OPTIONS_ASYNCHRONOUS ) {
-            log.warn(sm.getString("messageDispatchInterceptor.warning.optionflag"));
-        }
-        super.setOptionFlag(flag);
-    }
+	public long addAndGetCurrentSize(long inc)
+	{
+		return currentSize.addAndGet(inc);
+	}
 
+	public long setAndGetCurrentSize(long value)
+	{
+		currentSize.set(value);
+		return value;
+	}
 
-    public void setMaxQueueSize(long maxQueueSize) {
-        this.maxQueueSize = maxQueueSize;
-    }
+	@Override
+	public long getKeepAliveTime()
+	{
+		return keepAliveTime;
+	}
 
+	@Override
+	public int getMaxSpareThreads()
+	{
+		return maxSpareThreads;
+	}
 
-    public void setUseDeepClone(boolean useDeepClone) {
-        this.useDeepClone = useDeepClone;
-    }
+	@Override
+	public int getMaxThreads()
+	{
+		return maxThreads;
+	}
 
-    @Override
-    public long getMaxQueueSize() {
-        return maxQueueSize;
-    }
+	public void setKeepAliveTime(long keepAliveTime)
+	{
+		this.keepAliveTime = keepAliveTime;
+	}
 
+	public void setMaxSpareThreads(int maxSpareThreads)
+	{
+		this.maxSpareThreads = maxSpareThreads;
+	}
 
-    public boolean getUseDeepClone() {
-        return useDeepClone;
-    }
+	public void setMaxThreads(int maxThreads)
+	{
+		this.maxThreads = maxThreads;
+	}
 
-    @Override
-    public long getCurrentSize() {
-        return currentSize.get();
-    }
+	@Override
+	public boolean isAlwaysSend()
+	{
+		return alwaysSend;
+	}
 
+	@Override
+	public void setAlwaysSend(boolean alwaysSend)
+	{
+		this.alwaysSend = alwaysSend;
+	}
 
-    public long addAndGetCurrentSize(long inc) {
-        return currentSize.addAndGet(inc);
-    }
+	@Override
+	public void start(int svc) throws ChannelException
+	{
+		// start the thread
+		if (!run) {
+			synchronized (this) {
+				// only start with the sender
+				if (!run && ((svc & Channel.SND_TX_SEQ) == Channel.SND_TX_SEQ)) {
+					startQueue();
+				}
+			}
+		}
+		super.start(svc);
+	}
 
+	@Override
+	public void stop(int svc) throws ChannelException
+	{
+		// stop the thread
+		if (run) {
+			synchronized (this) {
+				if (run && ((svc & Channel.SND_TX_SEQ) == Channel.SND_TX_SEQ)) {
+					stopQueue();
+				}
+			}
+		}
 
-    public long setAndGetCurrentSize(long value) {
-        currentSize.set(value);
-        return value;
-    }
+		super.stop(svc);
+	}
 
-    @Override
-    public long getKeepAliveTime() {
-        return keepAliveTime;
-    }
+	protected void sendAsyncData(ChannelMessage msg, Member[] destination, InterceptorPayload payload)
+	{
+		ErrorHandler handler = null;
+		if (payload != null) {
+			handler = payload.getErrorHandler();
+		}
+		try {
+			super.sendMessage(destination, msg, null);
+			try {
+				if (handler != null) {
+					handler.handleCompletion(new UniqueId(msg.getUniqueId()));
+				}
+			} catch (Exception ex) {
+				log.error(sm.getString("messageDispatchInterceptor.completeMessage.failed"), ex);
+			}
+		} catch (Exception x) {
+			ChannelException cx = null;
+			if (x instanceof ChannelException) {
+				cx = (ChannelException) x;
+			} else {
+				cx = new ChannelException(x);
+			}
+			if (log.isDebugEnabled()) {
+				log.debug(sm.getString("messageDispatchInterceptor.AsyncMessage.failed"), x);
+			}
+			try {
+				if (handler != null) {
+					handler.handleError(cx, new UniqueId(msg.getUniqueId()));
+				}
+			} catch (Exception ex) {
+				log.error(sm.getString("messageDispatchInterceptor.errorMessage.failed"), ex);
+			}
+		} finally {
+			addAndGetCurrentSize(-msg.getMessage().getLength());
+		}
+	}
 
-    @Override
-    public int getMaxSpareThreads() {
-        return maxSpareThreads;
-    }
+	// ---------------------------------------------- stats of the thread pool
+	/**
+	 * Return the current number of threads that are managed by the pool.
+	 * 
+	 * @return the current number of threads that are managed by the pool
+	 */
+	@Override
+	public int getPoolSize()
+	{
+		if (executor instanceof ThreadPoolExecutor) {
+			return ((ThreadPoolExecutor) executor).getPoolSize();
+		} else {
+			return -1;
+		}
+	}
 
-    @Override
-    public int getMaxThreads() {
-        return maxThreads;
-    }
+	/**
+	 * Return the current number of threads that are in use.
+	 * 
+	 * @return the current number of threads that are in use
+	 */
+	@Override
+	public int getActiveCount()
+	{
+		if (executor instanceof ThreadPoolExecutor) {
+			return ((ThreadPoolExecutor) executor).getActiveCount();
+		} else {
+			return -1;
+		}
+	}
 
+	/**
+	 * Return the total number of tasks that have ever been scheduled for
+	 * execution by the pool.
+	 * 
+	 * @return the total number of tasks that have ever been scheduled for
+	 *         execution by the pool
+	 */
+	@Override
+	public long getTaskCount()
+	{
+		if (executor instanceof ThreadPoolExecutor) {
+			return ((ThreadPoolExecutor) executor).getTaskCount();
+		} else {
+			return -1;
+		}
+	}
 
-    public void setKeepAliveTime(long keepAliveTime) {
-        this.keepAliveTime = keepAliveTime;
-    }
-
-
-    public void setMaxSpareThreads(int maxSpareThreads) {
-        this.maxSpareThreads = maxSpareThreads;
-    }
-
-
-    public void setMaxThreads(int maxThreads) {
-        this.maxThreads = maxThreads;
-    }
-
-    @Override
-    public boolean isAlwaysSend() {
-        return alwaysSend;
-    }
-
-
-    @Override
-    public void setAlwaysSend(boolean alwaysSend) {
-        this.alwaysSend = alwaysSend;
-    }
-
-
-    @Override
-    public void start(int svc) throws ChannelException {
-        //start the thread
-        if (!run ) {
-            synchronized (this) {
-                // only start with the sender
-                if ( !run && ((svc & Channel.SND_TX_SEQ)==Channel.SND_TX_SEQ) ) {
-                    startQueue();
-                }
-            }
-        }
-        super.start(svc);
-    }
-
-
-    @Override
-    public void stop(int svc) throws ChannelException {
-        //stop the thread
-        if (run) {
-            synchronized (this) {
-                if ( run && ((svc & Channel.SND_TX_SEQ)==Channel.SND_TX_SEQ)) {
-                    stopQueue();
-                }
-            }
-        }
-
-        super.stop(svc);
-    }
-
-
-    protected void sendAsyncData(ChannelMessage msg, Member[] destination,
-            InterceptorPayload payload) {
-        ErrorHandler handler = null;
-        if (payload != null) {
-            handler = payload.getErrorHandler();
-        }
-        try {
-            super.sendMessage(destination, msg, null);
-            try {
-                if (handler != null) {
-                    handler.handleCompletion(new UniqueId(msg.getUniqueId()));
-                }
-            } catch ( Exception ex ) {
-                log.error(sm.getString("messageDispatchInterceptor.completeMessage.failed"),ex);
-            }
-        } catch ( Exception x ) {
-            ChannelException cx = null;
-            if (x instanceof ChannelException) {
-                cx = (ChannelException) x;
-            } else {
-                cx = new ChannelException(x);
-            }
-            if (log.isDebugEnabled()) {
-                log.debug(sm.getString("messageDispatchInterceptor.AsyncMessage.failed"),x);
-            }
-            try {
-                if (handler != null) {
-                    handler.handleError(cx, new UniqueId(msg.getUniqueId()));
-                }
-            } catch ( Exception ex ) {
-                log.error(sm.getString("messageDispatchInterceptor.errorMessage.failed"),ex);
-            }
-        } finally {
-            addAndGetCurrentSize(-msg.getMessage().getLength());
-        }
-    }
-
-    // ---------------------------------------------- stats of the thread pool
-    /**
-     * Return the current number of threads that are managed by the pool.
-     * @return the current number of threads that are managed by the pool
-     */
-    @Override
-    public int getPoolSize() {
-        if (executor instanceof ThreadPoolExecutor) {
-            return ((ThreadPoolExecutor) executor).getPoolSize();
-        } else {
-            return -1;
-        }
-    }
-
-    /**
-     * Return the current number of threads that are in use.
-     * @return the current number of threads that are in use
-     */
-    @Override
-    public int getActiveCount() {
-        if (executor instanceof ThreadPoolExecutor) {
-            return ((ThreadPoolExecutor) executor).getActiveCount();
-        } else {
-            return -1;
-        }
-    }
-
-    /**
-     * Return the total number of tasks that have ever been scheduled for execution by the pool.
-     * @return the total number of tasks that have ever been scheduled for execution by the pool
-     */
-    @Override
-    public long getTaskCount() {
-        if (executor instanceof ThreadPoolExecutor) {
-            return ((ThreadPoolExecutor) executor).getTaskCount();
-        } else {
-            return -1;
-        }
-    }
-
-    /**
-     * Return the total number of tasks that have completed execution by the pool.
-     * @return the total number of tasks that have completed execution by the pool
-     */
-    @Override
-    public long getCompletedTaskCount() {
-        if (executor instanceof ThreadPoolExecutor) {
-            return ((ThreadPoolExecutor) executor).getCompletedTaskCount();
-        } else {
-            return -1;
-        }
-    }
+	/**
+	 * Return the total number of tasks that have completed execution by the
+	 * pool.
+	 * 
+	 * @return the total number of tasks that have completed execution by the
+	 *         pool
+	 */
+	@Override
+	public long getCompletedTaskCount()
+	{
+		if (executor instanceof ThreadPoolExecutor) {
+			return ((ThreadPoolExecutor) executor).getCompletedTaskCount();
+		} else {
+			return -1;
+		}
+	}
 
 }

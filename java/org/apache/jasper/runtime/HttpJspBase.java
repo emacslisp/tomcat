@@ -35,57 +35,61 @@ import org.apache.jasper.compiler.Localizer;
  */
 public abstract class HttpJspBase extends HttpServlet implements HttpJspPage {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    protected HttpJspBase() {
-    }
+	protected HttpJspBase() {
+	}
 
-    @Override
-    public final void init(ServletConfig config)
-        throws ServletException
-    {
-        super.init(config);
-        jspInit();
-        _jspInit();
-    }
+	@Override
+	public final void init(ServletConfig config) throws ServletException
+	{
+		super.init(config);
+		jspInit();
+		_jspInit();
+	}
 
-    @Override
-    public String getServletInfo() {
-        return Localizer.getMessage("jsp.engine.info");
-    }
+	@Override
+	public String getServletInfo()
+	{
+		return Localizer.getMessage("jsp.engine.info");
+	}
 
-    @Override
-    public final void destroy() {
-        jspDestroy();
-        _jspDestroy();
-    }
+	@Override
+	public final void destroy()
+	{
+		jspDestroy();
+		_jspDestroy();
+	}
 
-    /**
-     * Entry point into service.
-     */
-    @Override
-    public final void service(HttpServletRequest request, HttpServletResponse response)
-        throws ServletException, IOException
-    {
-        _jspService(request, response);
-    }
+	/**
+	 * Entry point into service.
+	 */
+	@Override
+	public final void service(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException
+	{
+		_jspService(request, response);
+	}
 
-    @Override
-    public void jspInit() {
-    }
+	@Override
+	public void jspInit()
+	{
+	}
 
-    public void _jspInit() {
-    }
+	public void _jspInit()
+	{
+	}
 
-    @Override
-    public void jspDestroy() {
-    }
+	@Override
+	public void jspDestroy()
+	{
+	}
 
-    protected void _jspDestroy() {
-    }
+	protected void _jspDestroy()
+	{
+	}
 
-    @Override
-    public abstract void _jspService(HttpServletRequest request,
-                                     HttpServletResponse response)
-        throws ServletException, IOException;
+	@Override
+	public abstract void _jspService(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException;
 }

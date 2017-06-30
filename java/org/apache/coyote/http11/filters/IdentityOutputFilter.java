@@ -31,119 +31,113 @@ import org.apache.coyote.http11.OutputFilter;
  */
 public class IdentityOutputFilter implements OutputFilter {
 
+	// ----------------------------------------------------- Instance Variables
 
-    // ----------------------------------------------------- Instance Variables
+	/**
+	 * Content length.
+	 */
+	protected long contentLength = -1;
 
+	/**
+	 * Remaining bytes.
+	 */
+	protected long remaining = 0;
 
-    /**
-     * Content length.
-     */
-    protected long contentLength = -1;
+	/**
+	 * Next buffer in the pipeline.
+	 */
+	protected OutputBuffer buffer;
 
+	// --------------------------------------------------- OutputBuffer Methods
 
-    /**
-     * Remaining bytes.
-     */
-    protected long remaining = 0;
+	@Override
+	public int doWrite(ByteBuffer chunk) throws IOException
+	{
 
+		int result = -1;
 
-    /**
-     * Next buffer in the pipeline.
-     */
-    protected OutputBuffer buffer;
+		if (contentLength >= 0) {
+			if (remaining > 0) {
+				result = chunk.remaining();
+				if (result > remaining) {
+					// The chunk is longer than the number of bytes remaining
+					// in the body; changing the chunk length to the number
+					// of bytes remaining
+					chunk.limit(chunk.position() + (int) remaining);
+					result = (int) remaining;
+					remaining = 0;
+				} else {
+					remaining = remaining - result;
+				}
+				buffer.doWrite(chunk);
+			} else {
+				// No more bytes left to be written : return -1 and clear the
+				// buffer
+				chunk.position(0);
+				chunk.limit(0);
+				result = -1;
+			}
+		} else {
+			// If no content length was set, just write the bytes
+			result = chunk.remaining();
+			buffer.doWrite(chunk);
+			result -= chunk.remaining();
+		}
 
+		return result;
 
-    // --------------------------------------------------- OutputBuffer Methods
+	}
 
-    @Override
-    public int doWrite(ByteBuffer chunk) throws IOException {
+	@Override
+	public long getBytesWritten()
+	{
+		return buffer.getBytesWritten();
+	}
 
-        int result = -1;
+	// --------------------------------------------------- OutputFilter Methods
 
-        if (contentLength >= 0) {
-            if (remaining > 0) {
-                result = chunk.remaining();
-                if (result > remaining) {
-                    // The chunk is longer than the number of bytes remaining
-                    // in the body; changing the chunk length to the number
-                    // of bytes remaining
-                    chunk.limit(chunk.position() + (int) remaining);
-                    result = (int) remaining;
-                    remaining = 0;
-                } else {
-                    remaining = remaining - result;
-                }
-                buffer.doWrite(chunk);
-            } else {
-                // No more bytes left to be written : return -1 and clear the
-                // buffer
-                chunk.position(0);
-                chunk.limit(0);
-                result = -1;
-            }
-        } else {
-            // If no content length was set, just write the bytes
-            result = chunk.remaining();
-            buffer.doWrite(chunk);
-            result -= chunk.remaining();
-        }
+	/**
+	 * Some filters need additional parameters from the response. All the
+	 * necessary reading can occur in that method, as this method is called
+	 * after the response header processing is complete.
+	 */
+	@Override
+	public void setResponse(Response response)
+	{
+		contentLength = response.getContentLengthLong();
+		remaining = contentLength;
+	}
 
-        return result;
+	/**
+	 * Set the next buffer in the filter pipeline.
+	 */
+	@Override
+	public void setBuffer(OutputBuffer buffer)
+	{
+		this.buffer = buffer;
+	}
 
-    }
+	/**
+	 * End the current request. It is acceptable to write extra bytes using
+	 * buffer.doWrite during the execution of this method.
+	 */
+	@Override
+	public long end() throws IOException
+	{
 
+		if (remaining > 0)
+			return remaining;
+		return 0;
 
-    @Override
-    public long getBytesWritten() {
-        return buffer.getBytesWritten();
-    }
+	}
 
-
-    // --------------------------------------------------- OutputFilter Methods
-
-
-    /**
-     * Some filters need additional parameters from the response. All the
-     * necessary reading can occur in that method, as this method is called
-     * after the response header processing is complete.
-     */
-    @Override
-    public void setResponse(Response response) {
-        contentLength = response.getContentLengthLong();
-        remaining = contentLength;
-    }
-
-
-    /**
-     * Set the next buffer in the filter pipeline.
-     */
-    @Override
-    public void setBuffer(OutputBuffer buffer) {
-        this.buffer = buffer;
-    }
-
-
-    /**
-     * End the current request. It is acceptable to write extra bytes using
-     * buffer.doWrite during the execution of this method.
-     */
-    @Override
-    public long end()
-        throws IOException {
-
-        if (remaining > 0)
-            return remaining;
-        return 0;
-
-    }
-
-
-    /**
-     * Make the filter ready to process the next request.
-     */
-    @Override
-    public void recycle() {
-        contentLength = -1;
-        remaining = 0;
-    }
+	/**
+	 * Make the filter ready to process the next request.
+	 */
+	@Override
+	public void recycle()
+	{
+		contentLength = -1;
+		remaining = 0;
+	}
 }

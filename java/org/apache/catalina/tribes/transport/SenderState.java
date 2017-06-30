@@ -23,77 +23,83 @@ import org.apache.catalina.tribes.Member;
 
 public class SenderState {
 
-    public static final int READY = 0;
-    public static final int SUSPECT = 1;
-    public static final int FAILING = 2;
+	public static final int READY = 0;
+	public static final int SUSPECT = 1;
+	public static final int FAILING = 2;
 
-    protected static final ConcurrentMap<Member, SenderState> memberStates = new ConcurrentHashMap<>();
+	protected static final ConcurrentMap<Member, SenderState> memberStates = new ConcurrentHashMap<>();
 
-    public static SenderState getSenderState(Member member) {
-        return getSenderState(member, true);
-    }
+	public static SenderState getSenderState(Member member)
+	{
+		return getSenderState(member, true);
+	}
 
-    public static SenderState getSenderState(Member member, boolean create) {
-        SenderState state = memberStates.get(member);
-        if (state == null && create) {
-            state = new SenderState();
-            SenderState current = memberStates.putIfAbsent(member, state);
-            if (current != null) {
-                state = current;
-            }
-        }
-        return state;
-    }
+	public static SenderState getSenderState(Member member, boolean create)
+	{
+		SenderState state = memberStates.get(member);
+		if (state == null && create) {
+			state = new SenderState();
+			SenderState current = memberStates.putIfAbsent(member, state);
+			if (current != null) {
+				state = current;
+			}
+		}
+		return state;
+	}
 
-    public static void removeSenderState(Member member) {
-        memberStates.remove(member);
-    }
+	public static void removeSenderState(Member member)
+	{
+		memberStates.remove(member);
+	}
 
+	// ----------------------------------------------------- Instance Variables
 
-    // ----------------------------------------------------- Instance Variables
+	private volatile int state = READY;
 
-    private volatile int state = READY;
+	// ----------------------------------------------------- Constructor
 
-    //  ----------------------------------------------------- Constructor
+	private SenderState() {
+		this(READY);
+	}
 
+	private SenderState(int state) {
+		this.state = state;
+	}
 
-    private SenderState() {
-        this(READY);
-    }
+	/**
+	 *
+	 * @return boolean
+	 */
+	public boolean isSuspect()
+	{
+		return (state == SUSPECT) || (state == FAILING);
+	}
 
-    private SenderState(int state) {
-        this.state = state;
-    }
+	public void setSuspect()
+	{
+		state = SUSPECT;
+	}
 
-    /**
-     *
-     * @return boolean
-     */
-    public boolean isSuspect() {
-        return (state == SUSPECT) || (state == FAILING);
-    }
+	public boolean isReady()
+	{
+		return state == READY;
+	}
 
-    public void setSuspect() {
-        state = SUSPECT;
-    }
+	public void setReady()
+	{
+		state = READY;
+	}
 
-    public boolean isReady() {
-        return state == READY;
-    }
+	public boolean isFailing()
+	{
+		return state == FAILING;
+	}
 
-    public void setReady() {
-        state = READY;
-    }
+	public void setFailing()
+	{
+		state = FAILING;
+	}
 
-    public boolean isFailing() {
-        return state == FAILING;
-    }
-
-    public void setFailing() {
-        state = FAILING;
-    }
-
-
-    //  ----------------------------------------------------- Public Properties
+	// ----------------------------------------------------- Public Properties
 
 }

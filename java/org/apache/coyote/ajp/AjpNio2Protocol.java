@@ -21,29 +21,30 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.net.Nio2Channel;
 import org.apache.tomcat.util.net.Nio2Endpoint;
 
-
 /**
  * This the NIO2 based protocol handler implementation for AJP.
  */
 public class AjpNio2Protocol extends AbstractAjpProtocol<Nio2Channel> {
 
-    private static final Log log = LogFactory.getLog(AjpNio2Protocol.class);
+	private static final Log log = LogFactory.getLog(AjpNio2Protocol.class);
 
-    @Override
-    protected Log getLog() { return log; }
+	@Override
+	protected Log getLog()
+	{
+		return log;
+	}
 
+	// ------------------------------------------------------------ Constructor
 
-    // ------------------------------------------------------------ Constructor
+	public AjpNio2Protocol() {
+		super(new Nio2Endpoint());
+	}
 
-    public AjpNio2Protocol() {
-        super(new Nio2Endpoint());
-    }
+	// ----------------------------------------------------- JMX related methods
 
-
-    // ----------------------------------------------------- JMX related methods
-
-    @Override
-    protected String getNamePrefix() {
-        return "ajp-nio2";
-    }
+	@Override
+	protected String getNamePrefix()
+	{
+		return "ajp-nio2";
+	}
 }

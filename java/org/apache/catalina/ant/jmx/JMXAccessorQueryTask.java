@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-
 package org.apache.catalina.ant.jmx;
-
 
 import java.util.Iterator;
 import java.util.Set;
@@ -28,7 +26,6 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
 import org.apache.tools.ant.BuildException;
-
 
 /**
  * Query for Mbeans.
@@ -41,6 +38,7 @@ import org.apache.tools.ant.BuildException;
  * </ul>
  * <br>
  * Query a list of Mbeans.
+ * 
  * <pre>
  *   &lt;jmxQuery
  *           host="127.0.0.1"
@@ -48,126 +46,129 @@ import org.apache.tools.ant.BuildException;
  *           name="Catalina:type=Manager,*
  *           resultproperty="manager" /&gt;
  * </pre>
- * with attribute <em>attributebinding="true"</em> you can get
- * all attributes also from result objects.<br>
- * The property manager.length show the size of the result
- * and with manager.[0..length].name the
- * resulted ObjectNames are saved.
- * These tasks require Ant 1.6 or later interface.
+ * 
+ * with attribute <em>attributebinding="true"</em> you can get all attributes
+ * also from result objects.<br>
+ * The property manager.length show the size of the result and with
+ * manager.[0..length].name the resulted ObjectNames are saved. These tasks
+ * require Ant 1.6 or later interface.
  *
  * @author Peter Rossbach
  * @since 5.5.10
  */
 public class JMXAccessorQueryTask extends JMXAccessorTask {
 
-    // ----------------------------------------------------- Instance Variables
+	// ----------------------------------------------------- Instance Variables
 
-    private boolean attributebinding = false;
+	private boolean attributebinding = false;
 
-    // ------------------------------------------------------------- Properties
+	// ------------------------------------------------------------- Properties
 
-    /**
-     * @return Returns the attributebinding.
-     */
-    public boolean isAttributebinding() {
-        return attributebinding;
-    }
-    /**
-     * @param attributeBinding The attributebinding to set.
-     */
-    public void setAttributebinding(boolean attributeBinding) {
-        this.attributebinding = attributeBinding;
-    }
+	/**
+	 * @return Returns the attributebinding.
+	 */
+	public boolean isAttributebinding()
+	{
+		return attributebinding;
+	}
 
-    // ------------------------------------------------------ protected Methods
+	/**
+	 * @param attributeBinding
+	 *            The attributebinding to set.
+	 */
+	public void setAttributebinding(boolean attributeBinding)
+	{
+		this.attributebinding = attributeBinding;
+	}
 
+	// ------------------------------------------------------ protected Methods
 
-    @Override
-    public String jmxExecute(MBeanServerConnection jmxServerConnection)
-        throws Exception {
+	@Override
+	public String jmxExecute(MBeanServerConnection jmxServerConnection) throws Exception
+	{
 
-        if (getName() == null) {
-            throw new BuildException("Must specify a 'name'");
-        }
-        return jmxQuery(jmxServerConnection, getName());
+		if (getName() == null) {
+			throw new BuildException("Must specify a 'name'");
+		}
+		return jmxQuery(jmxServerConnection, getName());
 
-    }
+	}
 
+	/**
+	 * Call Mbean server for some mbeans with same domain, attributes. with
+	 * <em>attributebinding=true</em> you can save all attributes from all found
+	 * objects
+	 *
+	 * @param jmxServerConnection
+	 *            Connection to the JMX server
+	 * @param qry
+	 *            The query
+	 * @return null (no error message to report other than exception)
+	 */
+	protected String jmxQuery(MBeanServerConnection jmxServerConnection, String qry)
+	{
+		String isError = null;
+		Set<ObjectName> names = null;
+		String resultproperty = getResultproperty();
+		try {
+			names = jmxServerConnection.queryNames(new ObjectName(qry), null);
+			if (resultproperty != null) {
+				setProperty(resultproperty + ".Length", Integer.toString(names.size()));
+			}
+		} catch (Exception e) {
+			if (isEcho())
+				handleErrorOutput(e.getMessage());
+			return "Can't query mbeans " + qry;
+		}
 
-    /**
-     * Call Mbean server for some mbeans with same domain, attributes.
-     *  with <em>attributebinding=true</em> you can save all attributes from all found objects
-     *
-     * @param jmxServerConnection Connection to the JMX server
-     * @param qry The query
-     * @return null (no error message to report other than exception)
-     */
-    protected String jmxQuery(MBeanServerConnection jmxServerConnection,
-            String qry) {
-        String isError = null;
-        Set<ObjectName> names = null;
-        String resultproperty = getResultproperty();
-        try {
-            names = jmxServerConnection.queryNames(new ObjectName(qry), null);
-            if (resultproperty != null) {
-                setProperty(resultproperty + ".Length",Integer.toString(names.size()));
-            }
-        } catch (Exception e) {
-            if (isEcho())
-                handleErrorOutput(e.getMessage());
-            return "Can't query mbeans " + qry;
-        }
+		if (resultproperty != null) {
+			Iterator<ObjectName> it = names.iterator();
+			int oindex = 0;
+			String pname = null;
+			while (it.hasNext()) {
+				ObjectName oname = it.next();
+				pname = resultproperty + "." + Integer.toString(oindex) + ".";
+				oindex++;
+				setProperty(pname + "Name", oname.toString());
+				if (isAttributebinding()) {
+					bindAttributes(jmxServerConnection, pname, oname);
+				}
+			}
+		}
+		return isError;
+	}
 
-        if (resultproperty != null) {
-            Iterator<ObjectName> it = names.iterator();
-            int oindex = 0;
-            String pname = null;
-            while (it.hasNext()) {
-                ObjectName oname = it.next();
-                pname = resultproperty + "." + Integer.toString(oindex) + ".";
-                oindex++;
-                setProperty(pname + "Name", oname.toString());
-                if (isAttributebinding()) {
-                    bindAttributes(jmxServerConnection, pname, oname);
-                }
-            }
-        }
-        return isError;
-    }
+	protected void bindAttributes(MBeanServerConnection jmxServerConnection, String pname, ObjectName oname)
+	{
+		try {
+			MBeanInfo minfo = jmxServerConnection.getMBeanInfo(oname);
+			MBeanAttributeInfo attrs[] = minfo.getAttributes();
+			Object value = null;
 
-    protected void bindAttributes(MBeanServerConnection jmxServerConnection, String pname, ObjectName oname) {
-        try {
-            MBeanInfo minfo = jmxServerConnection.getMBeanInfo(oname);
-            MBeanAttributeInfo attrs[] = minfo.getAttributes();
-            Object value = null;
+			for (int i = 0; i < attrs.length; i++) {
+				if (!attrs[i].isReadable())
+					continue;
+				String attName = attrs[i].getName();
+				if (attName.indexOf('=') >= 0 || attName.indexOf(':') >= 0 || attName.indexOf(' ') >= 0) {
+					continue;
+				}
 
-            for (int i = 0; i < attrs.length; i++) {
-                if (!attrs[i].isReadable())
-                    continue;
-                String attName = attrs[i].getName();
-                if (attName.indexOf('=') >= 0 || attName.indexOf(':') >= 0
-                        || attName.indexOf(' ') >= 0) {
-                    continue;
-                }
-
-                try {
-                    value = jmxServerConnection
-                            .getAttribute(oname, attName);
-                } catch (Exception e) {
-                    if (isEcho())
-                        handleErrorOutput("Error getting attribute "
-                                + oname + " " + pname + attName + " "
-                                + e.toString());
-                    continue;
-                }
-                if (value == null)
-                    continue;
-                if ("modelerType".equals(attName))
-                    continue;
-                createProperty(pname + attName, value);
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-    }
+				try {
+					value = jmxServerConnection.getAttribute(oname, attName);
+				} catch (Exception e) {
+					if (isEcho())
+						handleErrorOutput(
+								"Error getting attribute " + oname + " " + pname + attName + " " + e.toString());
+					continue;
+				}
+				if (value == null)
+					continue;
+				if ("modelerType".equals(attName))
+					continue;
+				createProperty(pname + attName, value);
+			}
+		} catch (Exception e) {
+			// Ignore
+		}
+	}
 }

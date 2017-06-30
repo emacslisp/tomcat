@@ -27,19 +27,20 @@ import org.apache.tomcat.util.net.SSLHostConfigCertificate;
  */
 public class SSLHostConfigSF extends StoreFactoryBase {
 
-    /**
-     * Store nested SSLHostConfigCertificate elements.
-     * {@inheritDoc}
-     */
-    @Override
-    public void storeChildren(PrintWriter aWriter, int indent, Object aSSLHostConfig,
-            StoreDescription parentDesc) throws Exception {
-        if (aSSLHostConfig instanceof SSLHostConfig) {
-            SSLHostConfig sslHostConfig = (SSLHostConfig) aSSLHostConfig;
-            // Store nested <SSLHostConfigCertificate> elements
-            SSLHostConfigCertificate[] hostConfigsCertificates = sslHostConfig.getCertificates().toArray(new SSLHostConfigCertificate[0]);
-            storeElementArray(aWriter, indent, hostConfigsCertificates);
-        }
-    }
+	/**
+	 * Store nested SSLHostConfigCertificate elements. {@inheritDoc}
+	 */
+	@Override
+	public void storeChildren(PrintWriter aWriter, int indent, Object aSSLHostConfig, StoreDescription parentDesc)
+			throws Exception
+	{
+		if (aSSLHostConfig instanceof SSLHostConfig) {
+			SSLHostConfig sslHostConfig = (SSLHostConfig) aSSLHostConfig;
+			// Store nested <SSLHostConfigCertificate> elements
+			SSLHostConfigCertificate[] hostConfigsCertificates = sslHostConfig.getCertificates()
+					.toArray(new SSLHostConfigCertificate[0]);
+			storeElementArray(aWriter, indent, hostConfigsCertificates);
+		}
+	}
 
 }

@@ -21,125 +21,119 @@ import java.util.Collection;
 
 import javax.servlet.descriptor.JspPropertyGroupDescriptor;
 
+public class JspPropertyGroupDescriptorImpl implements JspPropertyGroupDescriptor {
 
+	private final JspPropertyGroup jspPropertyGroup;
 
-public class JspPropertyGroupDescriptorImpl
-        implements JspPropertyGroupDescriptor{
+	public JspPropertyGroupDescriptorImpl(JspPropertyGroup jspPropertyGroup) {
+		this.jspPropertyGroup = jspPropertyGroup;
+	}
 
-    private final JspPropertyGroup jspPropertyGroup;
+	@Override
+	public String getBuffer()
+	{
+		return jspPropertyGroup.getBuffer();
+	}
 
+	@Override
+	public String getDefaultContentType()
+	{
+		return jspPropertyGroup.getDefaultContentType();
+	}
 
-    public JspPropertyGroupDescriptorImpl(
-            JspPropertyGroup jspPropertyGroup) {
-        this.jspPropertyGroup = jspPropertyGroup;
-    }
+	@Override
+	public String getDeferredSyntaxAllowedAsLiteral()
+	{
+		String result = null;
 
+		if (jspPropertyGroup.getDeferredSyntax() != null) {
+			result = jspPropertyGroup.getDeferredSyntax().toString();
+		}
 
-    @Override
-    public String getBuffer() {
-        return jspPropertyGroup.getBuffer();
-    }
+		return result;
+	}
 
+	@Override
+	public String getElIgnored()
+	{
+		String result = null;
 
-    @Override
-    public String getDefaultContentType() {
-        return jspPropertyGroup.getDefaultContentType();
-    }
+		if (jspPropertyGroup.getElIgnored() != null) {
+			result = jspPropertyGroup.getElIgnored().toString();
+		}
 
+		return result;
+	}
 
-    @Override
-    public String getDeferredSyntaxAllowedAsLiteral() {
-        String result = null;
+	@Override
+	public String getErrorOnUndeclaredNamespace()
+	{
+		String result = null;
 
-        if (jspPropertyGroup.getDeferredSyntax() != null) {
-            result = jspPropertyGroup.getDeferredSyntax().toString();
-        }
+		if (jspPropertyGroup.getErrorOnUndeclaredNamespace() != null) {
+			result = jspPropertyGroup.getErrorOnUndeclaredNamespace().toString();
+		}
 
-        return result;
-    }
+		return result;
+	}
 
+	@Override
+	public Collection<String> getIncludeCodas()
+	{
+		return new ArrayList<>(jspPropertyGroup.getIncludeCodas());
+	}
 
-    @Override
-    public String getElIgnored() {
-        String result = null;
+	@Override
+	public Collection<String> getIncludePreludes()
+	{
+		return new ArrayList<>(jspPropertyGroup.getIncludePreludes());
+	}
 
-        if (jspPropertyGroup.getElIgnored() != null) {
-            result = jspPropertyGroup.getElIgnored().toString();
-        }
+	@Override
+	public String getIsXml()
+	{
+		String result = null;
 
-        return result;
-    }
+		if (jspPropertyGroup.getIsXml() != null) {
+			result = jspPropertyGroup.getIsXml().toString();
+		}
 
+		return result;
+	}
 
-    @Override
-    public String getErrorOnUndeclaredNamespace() {
-        String result = null;
+	@Override
+	public String getPageEncoding()
+	{
+		return jspPropertyGroup.getPageEncoding();
+	}
 
-        if (jspPropertyGroup.getErrorOnUndeclaredNamespace() != null) {
-            result =
-                jspPropertyGroup.getErrorOnUndeclaredNamespace().toString();
-        }
+	@Override
+	public String getScriptingInvalid()
+	{
+		String result = null;
 
-        return result;
-    }
+		if (jspPropertyGroup.getScriptingInvalid() != null) {
+			result = jspPropertyGroup.getScriptingInvalid().toString();
+		}
 
+		return result;
+	}
 
-    @Override
-    public Collection<String> getIncludeCodas() {
-        return new ArrayList<>(jspPropertyGroup.getIncludeCodas());
-    }
+	@Override
+	public String getTrimDirectiveWhitespaces()
+	{
+		String result = null;
 
+		if (jspPropertyGroup.getTrimWhitespace() != null) {
+			result = jspPropertyGroup.getTrimWhitespace().toString();
+		}
 
-    @Override
-    public Collection<String> getIncludePreludes() {
-        return new ArrayList<>(jspPropertyGroup.getIncludePreludes());
-    }
+		return result;
+	}
 
-
-    @Override
-    public String getIsXml() {
-        String result = null;
-
-        if (jspPropertyGroup.getIsXml() != null) {
-            result = jspPropertyGroup.getIsXml().toString();
-        }
-
-        return result;
-    }
-
-
-    @Override
-    public String getPageEncoding() {
-        return jspPropertyGroup.getPageEncoding();
-    }
-
-
-    @Override
-    public String getScriptingInvalid() {
-        String result = null;
-
-        if (jspPropertyGroup.getScriptingInvalid() != null) {
-            result = jspPropertyGroup.getScriptingInvalid().toString();
-        }
-
-        return result;
-    }
-
-
-    @Override
-    public String getTrimDirectiveWhitespaces() {
-        String result = null;
-
-        if (jspPropertyGroup.getTrimWhitespace() != null) {
-            result = jspPropertyGroup.getTrimWhitespace().toString();
-        }
-
-        return result;
-    }
-
-
-    @Override
-    public Collection<String> getUrlPatterns() {
-        return new ArrayList<>(jspPropertyGroup.getUrlPatterns());
-    }
+	@Override
+	public Collection<String> getUrlPatterns()
+	{
+		return new ArrayList<>(jspPropertyGroup.getUrlPatterns());
+	}
 }

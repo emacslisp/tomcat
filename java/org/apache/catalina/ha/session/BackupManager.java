@@ -33,249 +33,267 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- *@version 1.0
+ * @version 1.0
  */
-public class BackupManager extends ClusterManagerBase
-        implements MapOwner, DistributedManager {
+public class BackupManager extends ClusterManagerBase implements MapOwner, DistributedManager {
 
-    private final Log log = LogFactory.getLog(BackupManager.class);
+	private final Log log = LogFactory.getLog(BackupManager.class);
 
-    /**
-     * The string manager for this package.
-     */
-    protected static final StringManager sm = StringManager.getManager(BackupManager.class);
+	/**
+	 * The string manager for this package.
+	 */
+	protected static final StringManager sm = StringManager.getManager(BackupManager.class);
 
-    protected static final long DEFAULT_REPL_TIMEOUT = 15000;//15 seconds
+	protected static final long DEFAULT_REPL_TIMEOUT = 15000;// 15 seconds
 
-    /**
-     * The name of this manager
-     */
-    protected String name;
+	/**
+	 * The name of this manager
+	 */
+	protected String name;
 
-    /**
-     *
-     */
-    private int mapSendOptions = Channel.SEND_OPTIONS_SYNCHRONIZED_ACK|Channel.SEND_OPTIONS_USE_ACK;
+	/**
+	 *
+	 */
+	private int mapSendOptions = Channel.SEND_OPTIONS_SYNCHRONIZED_ACK | Channel.SEND_OPTIONS_USE_ACK;
 
-    /**
-     * Timeout for RPC messages.
-     */
-    private long rpcTimeout = DEFAULT_REPL_TIMEOUT;
+	/**
+	 * Timeout for RPC messages.
+	 */
+	private long rpcTimeout = DEFAULT_REPL_TIMEOUT;
 
-    /**
-     * Flag for whether to terminate this map that failed to start.
-     */
-    private boolean terminateOnStartFailure = false;
+	/**
+	 * Flag for whether to terminate this map that failed to start.
+	 */
+	private boolean terminateOnStartFailure = false;
 
-    /**
-     * The timeout for a ping message in replication map.
-     */
-    private long accessTimeout = 5000;
+	/**
+	 * The timeout for a ping message in replication map.
+	 */
+	private long accessTimeout = 5000;
 
-    /**
-     * Constructor, just calls super()
-     *
-     */
-    public BackupManager() {
-        super();
-    }
+	/**
+	 * Constructor, just calls super()
+	 *
+	 */
+	public BackupManager() {
+		super();
+	}
 
+	// ******************************************************************************/
+	// ClusterManager Interface
+	// ******************************************************************************/
 
-//******************************************************************************/
-//      ClusterManager Interface
-//******************************************************************************/
+	@Override
+	public void messageDataReceived(ClusterMessage msg)
+	{
+	}
 
-    @Override
-    public void messageDataReceived(ClusterMessage msg) {
-    }
+	@Override
+	public ClusterMessage requestCompleted(String sessionId)
+	{
+		if (!getState().isAvailable())
+			return null;
+		LazyReplicatedMap<String, Session> map = (LazyReplicatedMap<String, Session>) sessions;
+		map.replicate(sessionId, false);
+		return null;
+	}
 
-    @Override
-    public ClusterMessage requestCompleted(String sessionId) {
-        if (!getState().isAvailable()) return null;
-        LazyReplicatedMap<String,Session> map =
-                (LazyReplicatedMap<String,Session>)sessions;
-        map.replicate(sessionId,false);
-        return null;
-    }
+	// =========================================================================
+	// OVERRIDE THESE METHODS TO IMPLEMENT THE REPLICATION
+	// =========================================================================
+	@Override
+	public void objectMadePrimary(Object key, Object value)
+	{
+		if (value instanceof DeltaSession) {
+			DeltaSession session = (DeltaSession) value;
+			synchronized (session) {
+				session.access();
+				session.setPrimarySession(true);
+				session.endAccess();
+			}
+		}
+	}
 
+	@Override
+	public Session createEmptySession()
+	{
+		return new DeltaSession(this);
+	}
 
-//=========================================================================
-// OVERRIDE THESE METHODS TO IMPLEMENT THE REPLICATION
-//=========================================================================
-    @Override
-    public void objectMadePrimary(Object key, Object value) {
-        if (value instanceof DeltaSession) {
-            DeltaSession session = (DeltaSession)value;
-            synchronized (session) {
-                session.access();
-                session.setPrimarySession(true);
-                session.endAccess();
-            }
-        }
-    }
+	@Override
+	public String getName()
+	{
+		return this.name;
+	}
 
-    @Override
-    public Session createEmptySession() {
-        return new DeltaSession(this);
-    }
+	/**
+	 * Start this component and implement the requirements of
+	 * {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
+	 *
+	 * Starts the cluster communication channel, this will connect with the
+	 * other nodes in the cluster, and request the current session state to be
+	 * transferred to this node.
+	 *
+	 * @exception LifecycleException
+	 *                if this component detects a fatal error that prevents this
+	 *                component from being used
+	 */
+	@Override
+	protected synchronized void startInternal() throws LifecycleException
+	{
 
+		super.startInternal();
 
-    @Override
-    public String getName() {
-        return this.name;
-    }
+		try {
+			if (cluster == null)
+				throw new LifecycleException(sm.getString("backupManager.noCluster", getName()));
+			LazyReplicatedMap<String, Session> map = new LazyReplicatedMap<>(this, cluster.getChannel(), rpcTimeout,
+					getMapName(), getClassLoaders(), terminateOnStartFailure);
+			map.setChannelSendOptions(mapSendOptions);
+			map.setAccessTimeout(accessTimeout);
+			this.sessions = map;
+		} catch (Exception x) {
+			log.error(sm.getString("backupManager.startUnable", getName()), x);
+			throw new LifecycleException(sm.getString("backupManager.startFailed", getName()), x);
+		}
+		setState(LifecycleState.STARTING);
+	}
 
+	public String getMapName()
+	{
+		String name = cluster.getManagerName(getName(), this) + "-" + "map";
+		if (log.isDebugEnabled())
+			log.debug("Backup manager, Setting map name to:" + name);
+		return name;
+	}
 
-    /**
-     * Start this component and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * Starts the cluster communication channel, this will connect with the
-     * other nodes in the cluster, and request the current session state to be
-     * transferred to this node.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
-     */
-    @Override
-    protected synchronized void startInternal() throws LifecycleException {
+	/**
+	 * Stop this component and implement the requirements of
+	 * {@link org.apache.catalina.util.LifecycleBase#stopInternal()}.
+	 *
+	 * This will disconnect the cluster communication channel and stop the
+	 * listener thread.
+	 *
+	 * @exception LifecycleException
+	 *                if this component detects a fatal error that prevents this
+	 *                component from being used
+	 */
+	@Override
+	protected synchronized void stopInternal() throws LifecycleException
+	{
 
-        super.startInternal();
+		if (log.isDebugEnabled())
+			log.debug(sm.getString("backupManager.stopped", getName()));
 
-        try {
-            if (cluster == null) throw new LifecycleException(sm.getString("backupManager.noCluster", getName()));
-            LazyReplicatedMap<String,Session> map = new LazyReplicatedMap<>(
-                    this, cluster.getChannel(), rpcTimeout, getMapName(),
-                    getClassLoaders(), terminateOnStartFailure);
-            map.setChannelSendOptions(mapSendOptions);
-            map.setAccessTimeout(accessTimeout);
-            this.sessions = map;
-        }  catch ( Exception x ) {
-            log.error(sm.getString("backupManager.startUnable", getName()),x);
-            throw new LifecycleException(sm.getString("backupManager.startFailed", getName()),x);
-        }
-        setState(LifecycleState.STARTING);
-    }
+		setState(LifecycleState.STOPPING);
 
-    public String getMapName() {
-        String name = cluster.getManagerName(getName(),this)+"-"+"map";
-        if ( log.isDebugEnabled() ) log.debug("Backup manager, Setting map name to:"+name);
-        return name;
-    }
+		if (sessions instanceof LazyReplicatedMap) {
+			LazyReplicatedMap<String, Session> map = (LazyReplicatedMap<String, Session>) sessions;
+			map.breakdown();
+		}
 
+		super.stopInternal();
+	}
 
-    /**
-     * Stop this component and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#stopInternal()}.
-     *
-     * This will disconnect the cluster communication channel and stop the
-     * listener thread.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
-     */
-    @Override
-    protected synchronized void stopInternal() throws LifecycleException {
+	@Override
+	public void setName(String name)
+	{
+		this.name = name;
+	}
 
-        if (log.isDebugEnabled())
-            log.debug(sm.getString("backupManager.stopped", getName()));
+	public void setMapSendOptions(int mapSendOptions)
+	{
+		this.mapSendOptions = mapSendOptions;
+	}
 
-        setState(LifecycleState.STOPPING);
+	public void setMapSendOptions(String mapSendOptions)
+	{
 
-        if (sessions instanceof LazyReplicatedMap) {
-            LazyReplicatedMap<String,Session> map =
-                    (LazyReplicatedMap<String,Session>)sessions;
-            map.breakdown();
-        }
+		int value = Channel.parseSendOptions(mapSendOptions);
+		if (value > 0) {
+			this.setMapSendOptions(value);
+		}
+	}
 
-        super.stopInternal();
-    }
+	public int getMapSendOptions()
+	{
+		return mapSendOptions;
+	}
 
-    @Override
-    public void setName(String name) {
-        this.name = name;
-    }
+	/**
+	 * returns the SendOptions as a comma separated list of names
+	 * 
+	 * @return a comma separated list of the option names
+	 */
+	public String getMapSendOptionsName()
+	{
+		return Channel.getSendOptionsAsString(mapSendOptions);
+	}
 
-    public void setMapSendOptions(int mapSendOptions) {
-        this.mapSendOptions = mapSendOptions;
-    }
+	public void setRpcTimeout(long rpcTimeout)
+	{
+		this.rpcTimeout = rpcTimeout;
+	}
 
-    public void setMapSendOptions(String mapSendOptions) {
+	public long getRpcTimeout()
+	{
+		return rpcTimeout;
+	}
 
-        int value = Channel.parseSendOptions(mapSendOptions);
-        if (value > 0) {
-            this.setMapSendOptions(value);
-        }
-    }
+	public void setTerminateOnStartFailure(boolean terminateOnStartFailure)
+	{
+		this.terminateOnStartFailure = terminateOnStartFailure;
+	}
 
-    public int getMapSendOptions() {
-        return mapSendOptions;
-    }
+	public boolean isTerminateOnStartFailure()
+	{
+		return terminateOnStartFailure;
+	}
 
-    /**
-     * returns the SendOptions as a comma separated list of names
-     * @return a comma separated list of the option names
-     */
-    public String getMapSendOptionsName(){
-        return Channel.getSendOptionsAsString(mapSendOptions);
-    }
+	public long getAccessTimeout()
+	{
+		return accessTimeout;
+	}
 
-    public void setRpcTimeout(long rpcTimeout) {
-        this.rpcTimeout = rpcTimeout;
-    }
+	public void setAccessTimeout(long accessTimeout)
+	{
+		this.accessTimeout = accessTimeout;
+	}
 
-    public long getRpcTimeout() {
-        return rpcTimeout;
-    }
+	@Override
+	public String[] getInvalidatedSessions()
+	{
+		return new String[0];
+	}
 
-    public void setTerminateOnStartFailure(boolean terminateOnStartFailure) {
-        this.terminateOnStartFailure = terminateOnStartFailure;
-    }
+	@Override
+	public ClusterManager cloneFromTemplate()
+	{
+		BackupManager result = new BackupManager();
+		clone(result);
+		result.mapSendOptions = mapSendOptions;
+		result.rpcTimeout = rpcTimeout;
+		result.terminateOnStartFailure = terminateOnStartFailure;
+		result.accessTimeout = accessTimeout;
+		return result;
+	}
 
-    public boolean isTerminateOnStartFailure() {
-        return terminateOnStartFailure;
-    }
+	@Override
+	public int getActiveSessionsFull()
+	{
+		LazyReplicatedMap<String, Session> map = (LazyReplicatedMap<String, Session>) sessions;
+		return map.sizeFull();
+	}
 
-    public long getAccessTimeout() {
-        return accessTimeout;
-    }
-
-    public void setAccessTimeout(long accessTimeout) {
-        this.accessTimeout = accessTimeout;
-    }
-
-    @Override
-    public String[] getInvalidatedSessions() {
-        return new String[0];
-    }
-
-    @Override
-    public ClusterManager cloneFromTemplate() {
-        BackupManager result = new BackupManager();
-        clone(result);
-        result.mapSendOptions = mapSendOptions;
-        result.rpcTimeout = rpcTimeout;
-        result.terminateOnStartFailure = terminateOnStartFailure;
-        result.accessTimeout = accessTimeout;
-        return result;
-    }
-
-    @Override
-    public int getActiveSessionsFull() {
-        LazyReplicatedMap<String,Session> map =
-                (LazyReplicatedMap<String,Session>)sessions;
-        return map.sizeFull();
-    }
-
-    @Override
-    public Set<String> getSessionIdsFull() {
-        Set<String> sessionIds = new HashSet<>();
-        LazyReplicatedMap<String,Session> map =
-                (LazyReplicatedMap<String,Session>)sessions;
-        for (String id : map.keySetFull()) {
-            sessionIds.add(id);
-        }
-        return sessionIds;
-    }
+	@Override
+	public Set<String> getSessionIdsFull()
+	{
+		Set<String> sessionIds = new HashSet<>();
+		LazyReplicatedMap<String, Session> map = (LazyReplicatedMap<String, Session>) sessions;
+		for (String id : map.keySetFull()) {
+			sessionIds.add(id);
+		}
+		return sessionIds;
+	}
 
 }

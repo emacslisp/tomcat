@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package org.apache.catalina.ha.backend;
 
 /* for MBean to read ready and busy */
@@ -37,67 +36,70 @@ import org.apache.tomcat.util.modeler.Registry;
  */
 public class CollectedInfo {
 
-    /* Collect info via JMX */
-    protected MBeanServer mBeanServer = null;
-    protected ObjectName objName = null;
+	/* Collect info via JMX */
+	protected MBeanServer mBeanServer = null;
+	protected ObjectName objName = null;
 
-    int ready;
-    int busy;
+	int ready;
+	int busy;
 
-    int port = 0;
-    String host = null;
+	int port = 0;
+	String host = null;
 
-    public CollectedInfo(String host, int port) throws Exception {
-        init(host, port);
-    }
-    public void init(String host, int port) throws Exception {
-        int iport = 0;
-        String shost = null;
-        mBeanServer = Registry.getRegistry(null, null).getMBeanServer();
-        String onStr = "*:type=ThreadPool,*";
-        ObjectName objectName = new ObjectName(onStr);
-        Set<ObjectInstance> set = mBeanServer.queryMBeans(objectName, null);
-        for (ObjectInstance oi : set) {
-            objName = oi.getObjectName();
-            String name = objName.getKeyProperty("name");
+	public CollectedInfo(String host, int port) throws Exception {
+		init(host, port);
+	}
 
-            /* Name are:
-             * http-8080
-             * jk-10.33.144.3-8009
-             * jk-jfcpc%2F10.33.144.3-8009
-             */
-            String [] elenames = name.split("-");
-            String sport = elenames[elenames.length-1];
-            iport = Integer.parseInt(sport);
-            String [] shosts = elenames[1].split("%2F");
-            shost = shosts[0];
+	public void init(String host, int port) throws Exception
+	{
+		int iport = 0;
+		String shost = null;
+		mBeanServer = Registry.getRegistry(null, null).getMBeanServer();
+		String onStr = "*:type=ThreadPool,*";
+		ObjectName objectName = new ObjectName(onStr);
+		Set<ObjectInstance> set = mBeanServer.queryMBeans(objectName, null);
+		for (ObjectInstance oi : set) {
+			objName = oi.getObjectName();
+			String name = objName.getKeyProperty("name");
 
-            if (port==0 && host==null)
-                  break; /* Take the first one */
-            if (host==null && iport==port)
-                break; /* Only port done */
-            if (shost.compareTo(host) == 0)
-                break; /* Done port and host are the expected ones */
-        }
-        if (objName == null)
-            throw new Exception("Can't find connector for " + host + ":" + port);
-        this.port = iport;
-        this.host = shost;
+			/*
+			 * Name are: http-8080 jk-10.33.144.3-8009
+			 * jk-jfcpc%2F10.33.144.3-8009
+			 */
+			String[] elenames = name.split("-");
+			String sport = elenames[elenames.length - 1];
+			iport = Integer.parseInt(sport);
+			String[] shosts = elenames[1].split("%2F");
+			shost = shosts[0];
 
-    }
+			if (port == 0 && host == null)
+				break; /* Take the first one */
+			if (host == null && iport == port)
+				break; /* Only port done */
+			if (shost.compareTo(host) == 0)
+				break; /* Done port and host are the expected ones */
+		}
+		if (objName == null)
+			throw new Exception("Can't find connector for " + host + ":" + port);
+		this.port = iport;
+		this.host = shost;
 
-    public void refresh() throws Exception {
-        if (mBeanServer == null || objName == null) {
-            throw new Exception("Not initialized!!!");
-        }
-        Integer imax = (Integer) mBeanServer.getAttribute(objName, "maxThreads");
+	}
 
-        // the currentThreadCount could be 0 before the threads are created...
-        // Integer iready = (Integer) mBeanServer.getAttribute(objName, "currentThreadCount");
+	public void refresh() throws Exception
+	{
+		if (mBeanServer == null || objName == null) {
+			throw new Exception("Not initialized!!!");
+		}
+		Integer imax = (Integer) mBeanServer.getAttribute(objName, "maxThreads");
 
-        Integer ibusy  = (Integer) mBeanServer.getAttribute(objName, "currentThreadsBusy");
+		// the currentThreadCount could be 0 before the threads are created...
+		// Integer iready = (Integer) mBeanServer.getAttribute(objName,
+		// "currentThreadCount");
 
-        busy = ibusy.intValue();
-        ready = imax.intValue() - ibusy.intValue();
-    }
+		Integer ibusy = (Integer) mBeanServer.getAttribute(objName, "currentThreadsBusy");
+
+		busy = ibusy.intValue();
+		ready = imax.intValue() - ibusy.intValue();
+	}
 }

@@ -19,20 +19,21 @@
  * <p>
  * This package contains two DataSources: <code>PerUserPoolDataSource</code> and
  * <code>SharedPoolDataSource</code> which provide a database connection pool.
- * Below are a couple of usage examples.  One shows deployment into a JNDI system.
- * The other is a simple example initializing the pool using standard java code.
+ * Below are a couple of usage examples. One shows deployment into a JNDI
+ * system. The other is a simple example initializing the pool using standard
+ * java code.
  * </p>
  *
  * <h2>JNDI</h2>
  *
  * <p>
- * Most
- * J2EE containers will provide some way of deploying resources into JNDI.  The
- * method will vary among containers, but once the resource is available via
+ * Most J2EE containers will provide some way of deploying resources into JNDI.
+ * The method will vary among containers, but once the resource is available via
  * JNDI, the application can access the resource in a container independent
- * manner.  The following example shows deployment into tomcat (catalina).
+ * manner. The following example shows deployment into tomcat (catalina).
  * </p>
- * <p>In server.xml, the following would be added to the &lt;Context&gt; for your
+ * <p>
+ * In server.xml, the following would be added to the &lt;Context&gt; for your
  * webapp:
  * </p>
  *
@@ -54,7 +55,7 @@
  * </code>
  *
  * <p>
- * In web.xml.  Note that elements must be given in the order of the dtd
+ * In web.xml. Note that elements must be given in the order of the dtd
  * described in the servlet specification:
  * </p>
  *
@@ -79,9 +80,9 @@
  *
  * <p>
  * Apache Tomcat deploys all objects configured similarly to above within the
- * <strong>java:comp/env</strong> namespace.  So the JNDI path given for
- * the dataSourceName parameter is valid for a
- * <code>ConnectionPoolDataSource</code> that is deployed as given in the
+ * <strong>java:comp/env</strong> namespace. So the JNDI path given for the
+ * dataSourceName parameter is valid for a <code>ConnectionPoolDataSource</code>
+ * that is deployed as given in the
  * <a href="../cpdsadapter/package.html">cpdsadapter example</a>
  * </p>
  *
@@ -113,11 +114,11 @@
  *
  * <p>
  * The reference to the <code>DataSource</code> could be maintained, for
- * multiple getConnection() requests.  Or the <code>DataSource</code> can be
+ * multiple getConnection() requests. Or the <code>DataSource</code> can be
  * looked up in different parts of the application code.
  * <code>PerUserPoolDataSourceFactory</code> and
  * <code>SharedPoolDataSourceFactory</code> will maintain the state of the pool
- * between different lookups.  This behavior may be different in other
+ * between different lookups. This behavior may be different in other
  * implementations.
  * </p>
  *
@@ -126,7 +127,7 @@
  * <p>
  * Connection pooling is useful in applications regardless of whether they run
  * in a J2EE environment and a <code>DataSource</code> can be used within a
- * simpler environment.  The example below shows SharedPoolDataSource using
+ * simpler environment. The example below shows SharedPoolDataSource using
  * DriverAdapterCPDS as the backend source, though any CPDS is applicable.
  * </p>
  *

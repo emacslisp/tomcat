@@ -23,7 +23,8 @@ package org.apache.tomcat.dbcp.pool2;
  * <p>
  * This class is immutable, and therefore thread-safe
  *
- * @param <T> Type of element managed in this factory.
+ * @param <T>
+ *            Type of element managed in this factory.
  *
  * @see PooledObjectFactory
  * @see BaseKeyedPooledObjectFactory
@@ -31,71 +32,82 @@ package org.apache.tomcat.dbcp.pool2;
  * @since 2.0
  */
 public abstract class BasePooledObjectFactory<T> extends BaseObject implements PooledObjectFactory<T> {
-    /**
-     * Creates an object instance, to be wrapped in a {@link PooledObject}.
-     * <p>This method <strong>must</strong> support concurrent, multi-threaded
-     * activation.</p>
-     *
-     * @return an instance to be served by the pool
-     *
-     * @throws Exception if there is a problem creating a new instance,
-     *    this will be propagated to the code requesting an object.
-     */
-    public abstract T create() throws Exception;
+	/**
+	 * Creates an object instance, to be wrapped in a {@link PooledObject}.
+	 * <p>
+	 * This method <strong>must</strong> support concurrent, multi-threaded
+	 * activation.
+	 * </p>
+	 *
+	 * @return an instance to be served by the pool
+	 *
+	 * @throws Exception
+	 *             if there is a problem creating a new instance, this will be
+	 *             propagated to the code requesting an object.
+	 */
+	public abstract T create() throws Exception;
 
-    /**
-     * Wrap the provided instance with an implementation of
-     * {@link PooledObject}.
-     *
-     * @param obj the instance to wrap
-     *
-     * @return The provided instance, wrapped by a {@link PooledObject}
-     */
-    public abstract PooledObject<T> wrap(T obj);
+	/**
+	 * Wrap the provided instance with an implementation of
+	 * {@link PooledObject}.
+	 *
+	 * @param obj
+	 *            the instance to wrap
+	 *
+	 * @return The provided instance, wrapped by a {@link PooledObject}
+	 */
+	public abstract PooledObject<T> wrap(T obj);
 
-    @Override
-    public PooledObject<T> makeObject() throws Exception {
-        return wrap(create());
-    }
+	@Override
+	public PooledObject<T> makeObject() throws Exception
+	{
+		return wrap(create());
+	}
 
-    /**
-     *  No-op.
-     *
-     *  @param p ignored
-     */
-    @Override
-    public void destroyObject(final PooledObject<T> p)
-        throws Exception  {
-    }
+	/**
+	 * No-op.
+	 *
+	 * @param p
+	 *            ignored
+	 */
+	@Override
+	public void destroyObject(final PooledObject<T> p) throws Exception
+	{
+	}
 
-    /**
-     * This implementation always returns {@code true}.
-     *
-     * @param p ignored
-     *
-     * @return {@code true}
-     */
-    @Override
-    public boolean validateObject(final PooledObject<T> p) {
-        return true;
-    }
+	/**
+	 * This implementation always returns {@code true}.
+	 *
+	 * @param p
+	 *            ignored
+	 *
+	 * @return {@code true}
+	 */
+	@Override
+	public boolean validateObject(final PooledObject<T> p)
+	{
+		return true;
+	}
 
-    /**
-     *  No-op.
-     *
-     *  @param p ignored
-     */
-    @Override
-    public void activateObject(final PooledObject<T> p) throws Exception {
-    }
+	/**
+	 * No-op.
+	 *
+	 * @param p
+	 *            ignored
+	 */
+	@Override
+	public void activateObject(final PooledObject<T> p) throws Exception
+	{
+	}
 
-    /**
-     *  No-op.
-     *
-     * @param p ignored
-     */
-    @Override
-    public void passivateObject(final PooledObject<T> p)
-        throws Exception {
-    }
+	/**
+	 * No-op.
+	 *
+	 * @param p
+	 *            ignored
+	 */
+	@Override
+	public void passivateObject(final PooledObject<T> p) throws Exception
+	{
+	}
 }

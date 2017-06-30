@@ -22,39 +22,39 @@ import org.apache.catalina.tribes.Member;
 
 public interface McastServiceMBean {
 
-    // Attributes
-    public String getAddress();
+	// Attributes
+	public String getAddress();
 
-    public int getPort();
+	public int getPort();
 
-    public long getFrequency();
+	public long getFrequency();
 
-    public long getDropTime();
+	public long getDropTime();
 
-    public String getBind();
+	public String getBind();
 
-    public int getTtl();
+	public int getTtl();
 
-    public byte[] getDomain();
+	public byte[] getDomain();
 
-    public int getSoTimeout();
+	public int getSoTimeout();
 
-    public boolean getRecoveryEnabled();
+	public boolean getRecoveryEnabled();
 
-    public int getRecoveryCounter();
+	public int getRecoveryCounter();
 
-    public long getRecoverySleepTime();
+	public long getRecoverySleepTime();
 
-    public boolean getLocalLoopbackDisabled();
+	public boolean getLocalLoopbackDisabled();
 
-    public String getLocalMemberName();
+	public String getLocalMemberName();
 
-    // Operation
-    public Properties getProperties();
+	// Operation
+	public Properties getProperties();
 
-    public boolean hasMembers();
+	public boolean hasMembers();
 
-    public String[] getMembersByName();
+	public String[] getMembersByName();
 
-    public Member findMemberByName(String name);
+	public Member findMemberByName(String name);
 }

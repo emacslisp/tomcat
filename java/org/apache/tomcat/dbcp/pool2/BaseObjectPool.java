@@ -17,109 +17,119 @@
 package org.apache.tomcat.dbcp.pool2;
 
 /**
- * A simple base implementation of {@link ObjectPool}.
- * Optional operations are implemented to either do nothing, return a value
- * indicating it is unsupported or throw {@link UnsupportedOperationException}.
+ * A simple base implementation of {@link ObjectPool}. Optional operations are
+ * implemented to either do nothing, return a value indicating it is unsupported
+ * or throw {@link UnsupportedOperationException}.
  * <p>
  * This class is intended to be thread-safe.
  *
- * @param <T> Type of element pooled in this pool.
+ * @param <T>
+ *            Type of element pooled in this pool.
  *
  * @since 2.0
  */
 public abstract class BaseObjectPool<T> extends BaseObject implements ObjectPool<T> {
 
-    @Override
-    public abstract T borrowObject() throws Exception;
+	@Override
+	public abstract T borrowObject() throws Exception;
 
-    @Override
-    public abstract void returnObject(T obj) throws Exception;
+	@Override
+	public abstract void returnObject(T obj) throws Exception;
 
-    @Override
-    public abstract void invalidateObject(T obj) throws Exception;
+	@Override
+	public abstract void invalidateObject(T obj) throws Exception;
 
-    /**
-     * Not supported in this base implementation.
-     *
-     * @return a negative value.
-     */
-    @Override
-    public int getNumIdle() {
-        return -1;
-    }
+	/**
+	 * Not supported in this base implementation.
+	 *
+	 * @return a negative value.
+	 */
+	@Override
+	public int getNumIdle()
+	{
+		return -1;
+	}
 
-    /**
-     * Not supported in this base implementation.
-     *
-     * @return a negative value.
-     */
-    @Override
-    public int getNumActive() {
-        return -1;
-    }
+	/**
+	 * Not supported in this base implementation.
+	 *
+	 * @return a negative value.
+	 */
+	@Override
+	public int getNumActive()
+	{
+		return -1;
+	}
 
-    /**
-     * Not supported in this base implementation.
-     *
-     * @throws UnsupportedOperationException if the pool does not implement this
-     *          method
-     */
-    @Override
-    public void clear() throws Exception, UnsupportedOperationException {
-        throw new UnsupportedOperationException();
-    }
+	/**
+	 * Not supported in this base implementation.
+	 *
+	 * @throws UnsupportedOperationException
+	 *             if the pool does not implement this method
+	 */
+	@Override
+	public void clear() throws Exception, UnsupportedOperationException
+	{
+		throw new UnsupportedOperationException();
+	}
 
-    /**
-     * Not supported in this base implementation. Subclasses should override
-     * this behavior.
-     *
-     * @throws UnsupportedOperationException if the pool does not implement this
-     *          method
-     */
-    @Override
-    public void addObject() throws Exception, UnsupportedOperationException {
-        throw new UnsupportedOperationException();
-    }
+	/**
+	 * Not supported in this base implementation. Subclasses should override
+	 * this behavior.
+	 *
+	 * @throws UnsupportedOperationException
+	 *             if the pool does not implement this method
+	 */
+	@Override
+	public void addObject() throws Exception, UnsupportedOperationException
+	{
+		throw new UnsupportedOperationException();
+	}
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * This affects the behavior of <code>isClosed</code> and
-     * <code>assertOpen</code>.
-     */
-    @Override
-    public void close() {
-        closed = true;
-    }
+	/**
+	 * {@inheritDoc}
+	 * <p>
+	 * This affects the behavior of <code>isClosed</code> and
+	 * <code>assertOpen</code>.
+	 */
+	@Override
+	public void close()
+	{
+		closed = true;
+	}
 
-    /**
-     * Has this pool instance been closed.
-     *
-     * @return <code>true</code> when this pool has been closed.
-     */
-    public final boolean isClosed() {
-        return closed;
-    }
+	/**
+	 * Has this pool instance been closed.
+	 *
+	 * @return <code>true</code> when this pool has been closed.
+	 */
+	public final boolean isClosed()
+	{
+		return closed;
+	}
 
-    /**
-     * Throws an <code>IllegalStateException</code> when this pool has been
-     * closed.
-     *
-     * @throws IllegalStateException when this pool has been closed.
-     *
-     * @see #isClosed()
-     */
-    protected final void assertOpen() throws IllegalStateException {
-        if (isClosed()) {
-            throw new IllegalStateException("Pool not open");
-        }
-    }
+	/**
+	 * Throws an <code>IllegalStateException</code> when this pool has been
+	 * closed.
+	 *
+	 * @throws IllegalStateException
+	 *             when this pool has been closed.
+	 *
+	 * @see #isClosed()
+	 */
+	protected final void assertOpen() throws IllegalStateException
+	{
+		if (isClosed()) {
+			throw new IllegalStateException("Pool not open");
+		}
+	}
 
-    private volatile boolean closed = false;
+	private volatile boolean closed = false;
 
-    @Override
-    protected void toStringAppendFields(final StringBuilder builder) {
-        builder.append("closed=");
-        builder.append(closed);
-    }
+	@Override
+	protected void toStringAppendFields(final StringBuilder builder)
+	{
+		builder.append("closed=");
+		builder.append(closed);
+	}
 }

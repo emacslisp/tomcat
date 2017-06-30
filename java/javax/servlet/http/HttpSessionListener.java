@@ -29,23 +29,25 @@ import java.util.EventListener;
  */
 public interface HttpSessionListener extends EventListener {
 
-    /**
-     * Notification that a session was created.
-     * The default implementation is a NO-OP.
-     *
-     * @param se
-     *            the notification event
-     */
-    public default void sessionCreated(HttpSessionEvent se) {
-    }
+	/**
+	 * Notification that a session was created. The default implementation is a
+	 * NO-OP.
+	 *
+	 * @param se
+	 *            the notification event
+	 */
+	public default void sessionCreated(HttpSessionEvent se)
+	{
+	}
 
-    /**
-     * Notification that a session is about to be invalidated.
-     * The default implementation is a NO-OP.
-     *
-     * @param se
-     *            the notification event
-     */
-    public default void sessionDestroyed(HttpSessionEvent se) {
-    }
+	/**
+	 * Notification that a session is about to be invalidated. The default
+	 * implementation is a NO-OP.
+	 *
+	 * @param se
+	 *            the notification event
+	 */
+	public default void sessionDestroyed(HttpSessionEvent se)
+	{
+	}
 }

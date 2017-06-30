@@ -19,7 +19,6 @@ package org.apache.coyote;
 
 import javax.management.ObjectName;
 
-
 /**
  * Structure holding the Request and Response objects. It also holds statistical
  * informations about request processing and provide management informations
@@ -32,233 +31,269 @@ import javax.management.ObjectName;
  *
  * @author Costin Manolache
  */
-public class RequestInfo  {
-    private RequestGroupInfo global=null;
+public class RequestInfo {
+	private RequestGroupInfo global = null;
 
-    // ----------------------------------------------------------- Constructors
+	// ----------------------------------------------------------- Constructors
 
-    public RequestInfo( Request req) {
-        this.req=req;
-    }
+	public RequestInfo(Request req) {
+		this.req = req;
+	}
 
-    public RequestGroupInfo getGlobalProcessor() {
-        return global;
-    }
+	public RequestGroupInfo getGlobalProcessor()
+	{
+		return global;
+	}
 
-    public void setGlobalProcessor(RequestGroupInfo global) {
-        if( global != null) {
-            this.global=global;
-            global.addRequestProcessor( this );
-        } else {
-            if (this.global != null) {
-                this.global.removeRequestProcessor( this );
-                this.global = null;
-            }
-        }
-    }
+	public void setGlobalProcessor(RequestGroupInfo global)
+	{
+		if (global != null) {
+			this.global = global;
+			global.addRequestProcessor(this);
+		} else {
+			if (this.global != null) {
+				this.global.removeRequestProcessor(this);
+				this.global = null;
+			}
+		}
+	}
 
+	// ----------------------------------------------------- Instance Variables
+	private final Request req;
+	private int stage = Constants.STAGE_NEW;
+	private String workerThreadName;
+	private ObjectName rpName;
 
-    // ----------------------------------------------------- Instance Variables
-    private final Request req;
-    private int stage = Constants.STAGE_NEW;
-    private String workerThreadName;
-    private ObjectName rpName;
+	// -------------------- Information about the current request -----------
+	// This is useful for long-running requests only
 
-    // -------------------- Information about the current request  -----------
-    // This is useful for long-running requests only
+	public String getMethod()
+	{
+		return req.method().toString();
+	}
 
-    public String getMethod() {
-        return req.method().toString();
-    }
+	public String getCurrentUri()
+	{
+		return req.requestURI().toString();
+	}
 
-    public String getCurrentUri() {
-        return req.requestURI().toString();
-    }
+	public String getCurrentQueryString()
+	{
+		return req.queryString().toString();
+	}
 
-    public String getCurrentQueryString() {
-        return req.queryString().toString();
-    }
+	public String getProtocol()
+	{
+		return req.protocol().toString();
+	}
 
-    public String getProtocol() {
-        return req.protocol().toString();
-    }
+	public String getVirtualHost()
+	{
+		return req.serverName().toString();
+	}
 
-    public String getVirtualHost() {
-        return req.serverName().toString();
-    }
+	public int getServerPort()
+	{
+		return req.getServerPort();
+	}
 
-    public int getServerPort() {
-        return req.getServerPort();
-    }
+	public String getRemoteAddr()
+	{
+		req.action(ActionCode.REQ_HOST_ADDR_ATTRIBUTE, null);
+		return req.remoteAddr().toString();
+	}
 
-    public String getRemoteAddr() {
-        req.action(ActionCode.REQ_HOST_ADDR_ATTRIBUTE, null);
-        return req.remoteAddr().toString();
-    }
+	/**
+	 * Obtain the remote address for this connection as reported by an
+	 * intermediate proxy (if any).
+	 *
+	 * @return The remote address for the this connection
+	 */
+	public String getRemoteAddrForwarded()
+	{
+		String remoteAddrProxy = (String) req.getAttribute(Constants.REMOTE_ADDR_ATTRIBUTE);
+		if (remoteAddrProxy == null) {
+			return getRemoteAddr();
+		}
+		return remoteAddrProxy;
+	}
 
-    /**
-     * Obtain the remote address for this connection as reported by an
-     * intermediate proxy (if any).
-     *
-     * @return The remote address for the this connection
-     */
-    public String getRemoteAddrForwarded() {
-        String remoteAddrProxy = (String) req.getAttribute(Constants.REMOTE_ADDR_ATTRIBUTE);
-        if (remoteAddrProxy == null) {
-            return getRemoteAddr();
-        }
-        return remoteAddrProxy;
-    }
+	public int getContentLength()
+	{
+		return req.getContentLength();
+	}
 
-    public int getContentLength() {
-        return req.getContentLength();
-    }
+	public long getRequestBytesReceived()
+	{
+		return req.getBytesRead();
+	}
 
-    public long getRequestBytesReceived() {
-        return req.getBytesRead();
-    }
+	public long getRequestBytesSent()
+	{
+		return req.getResponse().getContentWritten();
+	}
 
-    public long getRequestBytesSent() {
-        return req.getResponse().getContentWritten();
-    }
+	public long getRequestProcessingTime()
+	{
+		// Not perfect, but good enough to avoid returning strange values due to
+		// concurrent updates.
+		long startTime = req.getStartTime();
+		if (getStage() == org.apache.coyote.Constants.STAGE_ENDED || startTime < 0) {
+			return 0;
+		} else {
+			return System.currentTimeMillis() - startTime;
+		}
+	}
 
-    public long getRequestProcessingTime() {
-        // Not perfect, but good enough to avoid returning strange values due to
-        // concurrent updates.
-        long startTime = req.getStartTime();
-        if (getStage() == org.apache.coyote.Constants.STAGE_ENDED || startTime < 0) {
-            return 0;
-        } else {
-            return System.currentTimeMillis() - startTime;
-        }
-    }
+	// -------------------- Statistical data --------------------
+	// Collected at the end of each request.
+	private long bytesSent;
+	private long bytesReceived;
 
-    // -------------------- Statistical data  --------------------
-    // Collected at the end of each request.
-    private long bytesSent;
-    private long bytesReceived;
+	// Total time = divide by requestCount to get average.
+	private long processingTime;
+	// The longest response time for a request
+	private long maxTime;
+	// URI of the request that took maxTime
+	private String maxRequestUri;
 
-    // Total time = divide by requestCount to get average.
-    private long processingTime;
-    // The longest response time for a request
-    private long maxTime;
-    // URI of the request that took maxTime
-    private String maxRequestUri;
+	private int requestCount;
+	// number of response codes >= 400
+	private int errorCount;
 
-    private int requestCount;
-    // number of response codes >= 400
-    private int errorCount;
+	// the time of the last request
+	private long lastRequestProcessingTime = 0;
 
-    //the time of the last request
-    private long lastRequestProcessingTime = 0;
+	/**
+	 * Called by the processor before recycling the request. It'll collect
+	 * statistic information.
+	 */
+	void updateCounters()
+	{
+		bytesReceived += req.getBytesRead();
+		bytesSent += req.getResponse().getContentWritten();
 
+		requestCount++;
+		if (req.getResponse().getStatus() >= 400)
+			errorCount++;
+		long t0 = req.getStartTime();
+		long t1 = System.currentTimeMillis();
+		long time = t1 - t0;
+		this.lastRequestProcessingTime = time;
+		processingTime += time;
+		if (maxTime < time) {
+			maxTime = time;
+			maxRequestUri = req.requestURI().toString();
+		}
+	}
 
-    /** Called by the processor before recycling the request. It'll collect
-     * statistic information.
-     */
-    void updateCounters() {
-        bytesReceived+=req.getBytesRead();
-        bytesSent+=req.getResponse().getContentWritten();
+	public int getStage()
+	{
+		return stage;
+	}
 
-        requestCount++;
-        if( req.getResponse().getStatus() >=400 )
-            errorCount++;
-        long t0=req.getStartTime();
-        long t1=System.currentTimeMillis();
-        long time=t1-t0;
-        this.lastRequestProcessingTime = time;
-        processingTime+=time;
-        if( maxTime < time ) {
-            maxTime=time;
-            maxRequestUri=req.requestURI().toString();
-        }
-    }
+	public void setStage(int stage)
+	{
+		this.stage = stage;
+	}
 
-    public int getStage() {
-        return stage;
-    }
+	public long getBytesSent()
+	{
+		return bytesSent;
+	}
 
-    public void setStage(int stage) {
-        this.stage = stage;
-    }
+	public void setBytesSent(long bytesSent)
+	{
+		this.bytesSent = bytesSent;
+	}
 
-    public long getBytesSent() {
-        return bytesSent;
-    }
+	public long getBytesReceived()
+	{
+		return bytesReceived;
+	}
 
-    public void setBytesSent(long bytesSent) {
-        this.bytesSent = bytesSent;
-    }
+	public void setBytesReceived(long bytesReceived)
+	{
+		this.bytesReceived = bytesReceived;
+	}
 
-    public long getBytesReceived() {
-        return bytesReceived;
-    }
+	public long getProcessingTime()
+	{
+		return processingTime;
+	}
 
-    public void setBytesReceived(long bytesReceived) {
-        this.bytesReceived = bytesReceived;
-    }
+	public void setProcessingTime(long processingTime)
+	{
+		this.processingTime = processingTime;
+	}
 
-    public long getProcessingTime() {
-        return processingTime;
-    }
+	public long getMaxTime()
+	{
+		return maxTime;
+	}
 
-    public void setProcessingTime(long processingTime) {
-        this.processingTime = processingTime;
-    }
+	public void setMaxTime(long maxTime)
+	{
+		this.maxTime = maxTime;
+	}
 
-    public long getMaxTime() {
-        return maxTime;
-    }
+	public String getMaxRequestUri()
+	{
+		return maxRequestUri;
+	}
 
-    public void setMaxTime(long maxTime) {
-        this.maxTime = maxTime;
-    }
+	public void setMaxRequestUri(String maxRequestUri)
+	{
+		this.maxRequestUri = maxRequestUri;
+	}
 
-    public String getMaxRequestUri() {
-        return maxRequestUri;
-    }
+	public int getRequestCount()
+	{
+		return requestCount;
+	}
 
-    public void setMaxRequestUri(String maxRequestUri) {
-        this.maxRequestUri = maxRequestUri;
-    }
+	public void setRequestCount(int requestCount)
+	{
+		this.requestCount = requestCount;
+	}
 
-    public int getRequestCount() {
-        return requestCount;
-    }
+	public int getErrorCount()
+	{
+		return errorCount;
+	}
 
-    public void setRequestCount(int requestCount) {
-        this.requestCount = requestCount;
-    }
+	public void setErrorCount(int errorCount)
+	{
+		this.errorCount = errorCount;
+	}
 
-    public int getErrorCount() {
-        return errorCount;
-    }
+	public String getWorkerThreadName()
+	{
+		return workerThreadName;
+	}
 
-    public void setErrorCount(int errorCount) {
-        this.errorCount = errorCount;
-    }
+	public ObjectName getRpName()
+	{
+		return rpName;
+	}
 
-    public String getWorkerThreadName() {
-        return workerThreadName;
-    }
+	public long getLastRequestProcessingTime()
+	{
+		return lastRequestProcessingTime;
+	}
 
-    public ObjectName getRpName() {
-        return rpName;
-    }
+	public void setWorkerThreadName(String workerThreadName)
+	{
+		this.workerThreadName = workerThreadName;
+	}
 
-    public long getLastRequestProcessingTime() {
-        return lastRequestProcessingTime;
-    }
+	public void setRpName(ObjectName rpName)
+	{
+		this.rpName = rpName;
+	}
 
-    public void setWorkerThreadName(String workerThreadName) {
-        this.workerThreadName = workerThreadName;
-    }
-
-    public void setRpName(ObjectName rpName) {
-        this.rpName = rpName;
-    }
-
-    public void setLastRequestProcessingTime(long lastRequestProcessingTime) {
-        this.lastRequestProcessingTime = lastRequestProcessingTime;
-    }
+	public void setLastRequestProcessingTime(long lastRequestProcessingTime)
+	{
+		this.lastRequestProcessingTime = lastRequestProcessingTime;
+	}
 }

@@ -26,145 +26,169 @@ import java.io.PrintWriter;
  */
 public class ServletWriter implements AutoCloseable {
 
-    private static final int TAB_WIDTH = 2;
-    private static final String SPACES = "                              ";
+	private static final int TAB_WIDTH = 2;
+	private static final String SPACES = "                              ";
 
-    /**
-     * Current indent level.
-     */
-    private int indent = 0;
-    private int virtual_indent = 0;
+	/**
+	 * Current indent level.
+	 */
+	private int indent = 0;
+	private int virtual_indent = 0;
 
-    /**
-     * The sink writer.
-     */
-    private final PrintWriter writer;
+	/**
+	 * The sink writer.
+	 */
+	private final PrintWriter writer;
 
-    /**
-     * Servlet line numbers start from 1.
-     */
-    private int javaLine = 1;
+	/**
+	 * Servlet line numbers start from 1.
+	 */
+	private int javaLine = 1;
 
+	public ServletWriter(PrintWriter writer) {
+		this.writer = writer;
+	}
 
-    public ServletWriter(PrintWriter writer) {
-        this.writer = writer;
-    }
+	@Override
+	public void close()
+	{
+		writer.close();
+	}
 
-    @Override
-    public void close() {
-        writer.close();
-    }
+	// -------------------- Access informations --------------------
 
+	public int getJavaLine()
+	{
+		return javaLine;
+	}
 
-    // -------------------- Access informations --------------------
+	// -------------------- Formatting --------------------
 
-    public int getJavaLine() {
-        return javaLine;
-    }
+	public void pushIndent()
+	{
+		virtual_indent += TAB_WIDTH;
+		if (virtual_indent >= 0 && virtual_indent <= SPACES.length())
+			indent = virtual_indent;
+	}
 
+	public void popIndent()
+	{
+		virtual_indent -= TAB_WIDTH;
+		if (virtual_indent >= 0 && virtual_indent <= SPACES.length())
+			indent = virtual_indent;
+	}
 
-    // -------------------- Formatting --------------------
+	/**
+	 * Prints the given string followed by '\n'
+	 * 
+	 * @param s
+	 *            The string
+	 */
+	public void println(String s)
+	{
+		javaLine++;
+		writer.println(s);
+	}
 
-    public void pushIndent() {
-        virtual_indent += TAB_WIDTH;
-        if (virtual_indent >= 0 && virtual_indent <= SPACES.length())
-            indent = virtual_indent;
-    }
+	/**
+	 * Prints a '\n'
+	 */
+	public void println()
+	{
+		javaLine++;
+		writer.println("");
+	}
 
-    public void popIndent() {
-        virtual_indent -= TAB_WIDTH;
-        if (virtual_indent >= 0 && virtual_indent <= SPACES.length())
-            indent = virtual_indent;
-    }
+	/**
+	 * Prints the current indention
+	 */
+	public void printin()
+	{
+		writer.print(SPACES.substring(0, indent));
+	}
 
-    /**
-     * Prints the given string followed by '\n'
-     * @param s The string
-     */
-    public void println(String s) {
-        javaLine++;
-        writer.println(s);
-    }
+	/**
+	 * Prints the current indention, followed by the given string
+	 * 
+	 * @param s
+	 *            The string
+	 */
+	public void printin(String s)
+	{
+		writer.print(SPACES.substring(0, indent));
+		writer.print(s);
+	}
 
-    /**
-     * Prints a '\n'
-     */
-    public void println() {
-        javaLine++;
-        writer.println("");
-    }
+	/**
+	 * Prints the current indention, and then the string, and a '\n'.
+	 * 
+	 * @param s
+	 *            The string
+	 */
+	public void printil(String s)
+	{
+		javaLine++;
+		writer.print(SPACES.substring(0, indent));
+		writer.println(s);
+	}
 
-    /**
-     * Prints the current indention
-     */
-    public void printin() {
-        writer.print(SPACES.substring(0, indent));
-    }
+	/**
+	 * Prints the given char.
+	 *
+	 * Use println() to print a '\n'.
+	 * 
+	 * @param c
+	 *            The char
+	 */
+	public void print(char c)
+	{
+		writer.print(c);
+	}
 
-    /**
-     * Prints the current indention, followed by the given string
-     * @param s The string
-     */
-    public void printin(String s) {
-        writer.print(SPACES.substring(0, indent));
-        writer.print(s);
-    }
+	/**
+	 * Prints the given int.
+	 * 
+	 * @param i
+	 *            The int
+	 */
+	public void print(int i)
+	{
+		writer.print(i);
+	}
 
-    /**
-     * Prints the current indention, and then the string, and a '\n'.
-     * @param s The string
-     */
-    public void printil(String s) {
-        javaLine++;
-        writer.print(SPACES.substring(0, indent));
-        writer.println(s);
-    }
+	/**
+	 * Prints the given string.
+	 *
+	 * The string must not contain any '\n', otherwise the line count will be
+	 * off.
+	 * 
+	 * @param s
+	 *            The string
+	 */
+	public void print(String s)
+	{
+		writer.print(s);
+	}
 
-    /**
-     * Prints the given char.
-     *
-     * Use println() to print a '\n'.
-     * @param c The char
-     */
-    public void print(char c) {
-        writer.print(c);
-    }
+	/**
+	 * Prints the given string.
+	 *
+	 * If the string spans multiple lines, the line count will be adjusted
+	 * accordingly.
+	 * 
+	 * @param s
+	 *            The string
+	 */
+	public void printMultiLn(String s)
+	{
+		int index = 0;
 
-    /**
-     * Prints the given int.
-     * @param i The int
-     */
-    public void print(int i) {
-        writer.print(i);
-    }
+		// look for hidden newlines inside strings
+		while ((index = s.indexOf('\n', index)) > -1) {
+			javaLine++;
+			index++;
+		}
 
-    /**
-     * Prints the given string.
-     *
-     * The string must not contain any '\n', otherwise the line count will be
-     * off.
-     * @param s The string
-     */
-    public void print(String s) {
-        writer.print(s);
-    }
-
-    /**
-     * Prints the given string.
-     *
-     * If the string spans multiple lines, the line count will be adjusted
-     * accordingly.
-     * @param s The string
-     */
-    public void printMultiLn(String s) {
-        int index = 0;
-
-        // look for hidden newlines inside strings
-        while ((index=s.indexOf('\n',index)) > -1 ) {
-            javaLine++;
-            index++;
-        }
-
-        writer.print(s);
-    }
+		writer.print(s);
+	}
 }

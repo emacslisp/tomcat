@@ -22,21 +22,21 @@ package org.apache.coyote;
  */
 public class ProtocolException extends RuntimeException {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    public ProtocolException() {
-        super();
-    }
+	public ProtocolException() {
+		super();
+	}
 
-    public ProtocolException(String message, Throwable cause) {
-        super(message, cause);
-    }
+	public ProtocolException(String message, Throwable cause) {
+		super(message, cause);
+	}
 
-    public ProtocolException(String message) {
-        super(message);
-    }
+	public ProtocolException(String message) {
+		super(message);
+	}
 
-    public ProtocolException(Throwable cause) {
-        super(cause);
-    }
+	public ProtocolException(Throwable cause) {
+		super(cause);
+	}
 }

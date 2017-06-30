@@ -29,69 +29,69 @@ import org.apache.tomcat.util.net.SocketWrapperBase;
 
 public abstract class UpgradeProcessorBase extends AbstractProcessorLight implements WebConnection {
 
-    protected static final int INFINITE_TIMEOUT = -1;
+	protected static final int INFINITE_TIMEOUT = -1;
 
-    private final UpgradeToken upgradeToken;
+	private final UpgradeToken upgradeToken;
 
-    public UpgradeProcessorBase(UpgradeToken upgradeToken) {
-        this.upgradeToken = upgradeToken;
-    }
+	public UpgradeProcessorBase(UpgradeToken upgradeToken) {
+		this.upgradeToken = upgradeToken;
+	}
 
+	// ------------------------------------------- Implemented Processor methods
 
-    // ------------------------------------------- Implemented Processor methods
+	@Override
+	public final boolean isUpgrade()
+	{
+		return true;
+	}
 
-    @Override
-    public final boolean isUpgrade() {
-        return true;
-    }
+	@Override
+	public UpgradeToken getUpgradeToken()
+	{
+		return upgradeToken;
+	}
 
+	@Override
+	public final void recycle()
+	{
+		// Currently a NO-OP as upgrade processors are not recycled.
+	}
 
-    @Override
-    public UpgradeToken getUpgradeToken() {
-        return upgradeToken;
-    }
+	// ---------------------------- Processor methods that are NO-OP for upgrade
 
+	@Override
+	public final SocketState service(SocketWrapperBase<?> socketWrapper) throws IOException
+	{
+		return null;
+	}
 
-    @Override
-    public final void recycle() {
-        // Currently a NO-OP as upgrade processors are not recycled.
-    }
+	@Override
+	public final SocketState asyncPostProcess()
+	{
+		return null;
+	}
 
+	@Override
+	public final boolean isAsync()
+	{
+		return false;
+	}
 
-    // ---------------------------- Processor methods that are NO-OP for upgrade
+	@Override
+	public final Request getRequest()
+	{
+		return null;
+	}
 
-    @Override
-    public final SocketState service(SocketWrapperBase<?> socketWrapper) throws IOException {
-        return null;
-    }
+	@Override
+	public ByteBuffer getLeftoverInput()
+	{
+		return null;
+	}
 
-
-    @Override
-    public final SocketState asyncPostProcess() {
-        return null;
-    }
-
-
-    @Override
-    public final boolean isAsync() {
-        return false;
-    }
-
-
-    @Override
-    public final Request getRequest() {
-        return null;
-    }
-
-
-    @Override
-    public ByteBuffer getLeftoverInput() {
-        return null;
-    }
-
-
-    @Override
-    public void timeoutAsync(long now) {
-        // NO-OP
-    }
+	@Override
+	public void timeoutAsync(long now)
+	{
+		// NO-OP
+	}
 }

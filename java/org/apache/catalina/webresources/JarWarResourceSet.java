@@ -38,151 +38,154 @@ import org.apache.tomcat.util.buf.UriUtil;
  */
 public class JarWarResourceSet extends AbstractArchiveResourceSet {
 
-    private final String archivePath;
+	private final String archivePath;
 
-    /**
-     * Creates a new {@link org.apache.catalina.WebResourceSet} based on a JAR
-     * file that is nested inside a WAR.
-     *
-     * @param root          The {@link WebResourceRoot} this new
-     *                          {@link org.apache.catalina.WebResourceSet} will
-     *                          be added to.
-     * @param webAppMount   The path within the web application at which this
-     *                          {@link org.apache.catalina.WebResourceSet} will
-     *                          be mounted.
-     * @param base          The absolute path to the WAR file on the file system
-     *                          in which the JAR is located.
-     * @param archivePath   The path within the WAR file where the JAR file is
-     *                          located.
-     * @param internalPath  The path within this new {@link
-     *                          org.apache.catalina.WebResourceSet} where
-     *                          resources will be served from. E.g. for a
-     *                          resource JAR, this would be "META-INF/resources"
-     *
-     * @throws IllegalArgumentException if the webAppMount or internalPath is
-     *         not valid (valid paths must start with '/')
-     */
-    public JarWarResourceSet(WebResourceRoot root, String webAppMount,
-            String base, String archivePath, String internalPath)
-            throws IllegalArgumentException {
-        setRoot(root);
-        setWebAppMount(webAppMount);
-        setBase(base);
-        this.archivePath = archivePath;
-        setInternalPath(internalPath);
+	/**
+	 * Creates a new {@link org.apache.catalina.WebResourceSet} based on a JAR
+	 * file that is nested inside a WAR.
+	 *
+	 * @param root
+	 *            The {@link WebResourceRoot} this new
+	 *            {@link org.apache.catalina.WebResourceSet} will be added to.
+	 * @param webAppMount
+	 *            The path within the web application at which this
+	 *            {@link org.apache.catalina.WebResourceSet} will be mounted.
+	 * @param base
+	 *            The absolute path to the WAR file on the file system in which
+	 *            the JAR is located.
+	 * @param archivePath
+	 *            The path within the WAR file where the JAR file is located.
+	 * @param internalPath
+	 *            The path within this new
+	 *            {@link org.apache.catalina.WebResourceSet} where resources
+	 *            will be served from. E.g. for a resource JAR, this would be
+	 *            "META-INF/resources"
+	 *
+	 * @throws IllegalArgumentException
+	 *             if the webAppMount or internalPath is not valid (valid paths
+	 *             must start with '/')
+	 */
+	public JarWarResourceSet(WebResourceRoot root, String webAppMount, String base, String archivePath,
+			String internalPath) throws IllegalArgumentException {
+		setRoot(root);
+		setWebAppMount(webAppMount);
+		setBase(base);
+		this.archivePath = archivePath;
+		setInternalPath(internalPath);
 
-        if (getRoot().getState().isAvailable()) {
-            try {
-                start();
-            } catch (LifecycleException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-    }
+		if (getRoot().getState().isAvailable()) {
+			try {
+				start();
+			} catch (LifecycleException e) {
+				throw new IllegalStateException(e);
+			}
+		}
+	}
 
-    @Override
-    protected WebResource createArchiveResource(JarEntry jarEntry,
-            String webAppPath, Manifest manifest) {
-        return new JarWarResource(this, webAppPath, getBaseUrlString(), jarEntry, archivePath);
-    }
+	@Override
+	protected WebResource createArchiveResource(JarEntry jarEntry, String webAppPath, Manifest manifest)
+	{
+		return new JarWarResource(this, webAppPath, getBaseUrlString(), jarEntry, archivePath);
+	}
 
+	/**
+	 * {@inheritDoc}
+	 * <p>
+	 * JarWar can't optimise for a single resource so the Map is always
+	 * returned.
+	 */
+	@Override
+	protected HashMap<String, JarEntry> getArchiveEntries(boolean single)
+	{
+		synchronized (archiveLock) {
+			if (archiveEntries == null) {
+				JarFile warFile = null;
+				InputStream jarFileIs = null;
+				archiveEntries = new HashMap<>();
+				try {
+					warFile = openJarFile();
+					JarEntry jarFileInWar = warFile.getJarEntry(archivePath);
+					jarFileIs = warFile.getInputStream(jarFileInWar);
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * JarWar can't optimise for a single resource so the Map is always
-     * returned.
-     */
-    @Override
-    protected HashMap<String,JarEntry> getArchiveEntries(boolean single) {
-        synchronized (archiveLock) {
-            if (archiveEntries == null) {
-                JarFile warFile = null;
-                InputStream jarFileIs = null;
-                archiveEntries = new HashMap<>();
-                try {
-                    warFile = openJarFile();
-                    JarEntry jarFileInWar = warFile.getJarEntry(archivePath);
-                    jarFileIs = warFile.getInputStream(jarFileInWar);
+					try (JarInputStream jarIs = new JarInputStream(jarFileIs)) {
+						JarEntry entry = jarIs.getNextJarEntry();
+						boolean hasMetaInf = false;
+						while (entry != null) {
+							if (!hasMetaInf && entry.getName().startsWith("META-INF/")) {
+								hasMetaInf = true;
+							}
+							archiveEntries.put(entry.getName(), entry);
+							entry = jarIs.getNextJarEntry();
+						}
+						setManifest(jarIs.getManifest());
+						// Hacks to work-around JarInputStream swallowing these
+						// entries. The attributes for these entries will be
+						// incomplete. Making the attributes available would
+						// require (re-)reading the stream as a ZipInputStream
+						// and creating JarEntry objects from the ZipEntries.
+						if (hasMetaInf) {
+							JarEntry metaInfDir = new JarEntry("META-INF/");
+							archiveEntries.put(metaInfDir.getName(), metaInfDir);
+						}
+						if (jarIs.getManifest() != null) {
+							JarEntry manifest = new JarEntry("META-INF/MANIFEST.MF");
+							archiveEntries.put(manifest.getName(), manifest);
+						}
+					}
+				} catch (IOException ioe) {
+					// Should never happen
+					archiveEntries = null;
+					throw new IllegalStateException(ioe);
+				} finally {
+					if (warFile != null) {
+						closeJarFile();
+					}
+					if (jarFileIs != null) {
+						try {
+							jarFileIs.close();
+						} catch (IOException e) {
+							// Ignore
+						}
+					}
+				}
+			}
+			return archiveEntries;
+		}
+	}
 
-                    try (JarInputStream jarIs = new JarInputStream(jarFileIs)) {
-                        JarEntry entry = jarIs.getNextJarEntry();
-                        boolean hasMetaInf = false;
-                        while (entry != null) {
-                            if (!hasMetaInf && entry.getName().startsWith("META-INF/")) {
-                                hasMetaInf = true;
-                            }
-                            archiveEntries.put(entry.getName(), entry);
-                            entry = jarIs.getNextJarEntry();
-                        }
-                        setManifest(jarIs.getManifest());
-                        // Hacks to work-around JarInputStream swallowing these
-                        // entries. The attributes for these entries will be
-                        // incomplete. Making the attributes available would
-                        // require (re-)reading the stream as a ZipInputStream
-                        // and creating JarEntry objects from the ZipEntries.
-                        if (hasMetaInf) {
-                            JarEntry metaInfDir = new JarEntry("META-INF/");
-                            archiveEntries.put(metaInfDir.getName(), metaInfDir);
-                        }
-                        if (jarIs.getManifest() != null) {
-                            JarEntry manifest = new JarEntry("META-INF/MANIFEST.MF");
-                            archiveEntries.put(manifest.getName(), manifest);
-                        }
-                    }
-                } catch (IOException ioe) {
-                    // Should never happen
-                    archiveEntries = null;
-                    throw new IllegalStateException(ioe);
-                } finally {
-                    if (warFile != null) {
-                        closeJarFile();
-                    }
-                    if (jarFileIs != null) {
-                        try {
-                            jarFileIs.close();
-                        } catch (IOException e) {
-                            // Ignore
-                        }
-                    }
-                }
-            }
-            return archiveEntries;
-        }
-    }
+	/**
+	 * {@inheritDoc}
+	 * <p>
+	 * Should never be called since {@link #getArchiveEntries(boolean)} always
+	 * returns a Map.
+	 */
+	@Override
+	protected JarEntry getArchiveEntry(String pathInArchive)
+	{
+		throw new IllegalStateException("Coding error");
+	}
 
+	// -------------------------------------------------------- Lifecycle
+	// methods
+	@Override
+	protected void initInternal() throws LifecycleException
+	{
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * Should never be called since {@link #getArchiveEntries(boolean)} always
-     * returns a Map.
-     */
-    @Override
-    protected JarEntry getArchiveEntry(String pathInArchive) {
-        throw new IllegalStateException("Coding error");
-    }
+		try (JarFile warFile = new JarFile(getBase())) {
+			JarEntry jarFileInWar = warFile.getJarEntry(archivePath);
+			InputStream jarFileIs = warFile.getInputStream(jarFileInWar);
 
+			try (JarInputStream jarIs = new JarInputStream(jarFileIs)) {
+				setManifest(jarIs.getManifest());
+			}
+		} catch (IOException ioe) {
+			throw new IllegalArgumentException(ioe);
+		}
 
-    //-------------------------------------------------------- Lifecycle methods
-    @Override
-    protected void initInternal() throws LifecycleException {
-
-        try (JarFile warFile = new JarFile(getBase())) {
-            JarEntry jarFileInWar = warFile.getJarEntry(archivePath);
-            InputStream jarFileIs = warFile.getInputStream(jarFileInWar);
-
-            try (JarInputStream jarIs = new JarInputStream(jarFileIs)) {
-                setManifest(jarIs.getManifest());
-            }
-        } catch (IOException ioe) {
-            throw new IllegalArgumentException(ioe);
-        }
-
-        try {
-            setBaseUrl(UriUtil.buildJarSafeUrl(new File(getBase())));
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException(e);
-        }
-    }
+		try {
+			setBaseUrl(UriUtil.buildJarSafeUrl(new File(getBase())));
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
 }

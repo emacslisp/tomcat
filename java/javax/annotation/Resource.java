@@ -24,24 +24,30 @@ import java.lang.annotation.Target;
 /**
  * @since Common Annotations 1.0
  */
-@Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD})
+@Target({ ElementType.TYPE, ElementType.METHOD, ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Resource {
-    public enum AuthenticationType {
-        CONTAINER,
-        APPLICATION
-    }
-    public String name() default "";
-    /**
-     * Uses generics since Common Annotations 1.2.
-     */
-    public Class<?> type() default Object.class;
-    public AuthenticationType authenticationType() default AuthenticationType.CONTAINER;
-    public boolean shareable() default true;
-    public String description() default "";
-    public String mappedName() default "";
-    /**
-     * @since Common Annotations 1.1
-     */
-    public String lookup() default "";
+	public enum AuthenticationType {
+		CONTAINER, APPLICATION
+	}
+
+	public String name() default "";
+
+	/**
+	 * Uses generics since Common Annotations 1.2.
+	 */
+	public Class<?> type() default Object.class;
+
+	public AuthenticationType authenticationType() default AuthenticationType.CONTAINER;
+
+	public boolean shareable() default true;
+
+	public String description() default "";
+
+	public String mappedName() default "";
+
+	/**
+	 * @since Common Annotations 1.1
+	 */
+	public String lookup() default "";
 }

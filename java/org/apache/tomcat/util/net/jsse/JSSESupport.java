@@ -33,159 +33,158 @@ import org.apache.tomcat.util.net.SSLSupport;
 import org.apache.tomcat.util.net.openssl.ciphers.Cipher;
 import org.apache.tomcat.util.res.StringManager;
 
-/** JSSESupport
-
-   Concrete implementation class for JSSE
-   Support classes.
-
-   This will only work with JDK 1.2 and up since it
-   depends on JDK 1.2's certificate support
-
-   @author EKR
-   @author Craig R. McClanahan
-   Parts cribbed from JSSECertCompat
-   Parts cribbed from CertificatesValve
-*/
+/**
+ * JSSESupport
+ * 
+ * Concrete implementation class for JSSE Support classes.
+ * 
+ * This will only work with JDK 1.2 and up since it depends on JDK 1.2's
+ * certificate support
+ * 
+ * @author EKR
+ * @author Craig R. McClanahan Parts cribbed from JSSECertCompat Parts cribbed
+ *         from CertificatesValve
+ */
 public class JSSESupport implements SSLSupport, SSLSessionManager {
 
-    private static final Log log = LogFactory.getLog(JSSESupport.class);
+	private static final Log log = LogFactory.getLog(JSSESupport.class);
 
-    private static final StringManager sm = StringManager.getManager(JSSESupport.class);
+	private static final StringManager sm = StringManager.getManager(JSSESupport.class);
 
-    private static final Map<String,Integer> keySizeCache = new HashMap<>();
+	private static final Map<String, Integer> keySizeCache = new HashMap<>();
 
-    static {
-        for (Cipher cipher : Cipher.values()) {
-            for (String jsseName : cipher.getJsseNames()) {
-                keySizeCache.put(jsseName, Integer.valueOf(cipher.getStrength_bits()));
-            }
-        }
-    }
+	static {
+		for (Cipher cipher : Cipher.values()) {
+			for (String jsseName : cipher.getJsseNames()) {
+				keySizeCache.put(jsseName, Integer.valueOf(cipher.getStrength_bits()));
+			}
+		}
+	}
 
-    /*
-     * NO-OP method provided to make it easy for other classes in this package
-     * to trigger the loading of this class and the population of the
-     * keySizeCache.
-     */
-    static void init() {
-        // NO-OP
-    }
+	/*
+	 * NO-OP method provided to make it easy for other classes in this package
+	 * to trigger the loading of this class and the population of the
+	 * keySizeCache.
+	 */
+	static void init()
+	{
+		// NO-OP
+	}
 
-    private SSLSession session;
+	private SSLSession session;
 
+	public JSSESupport(SSLSession session) {
+		this.session = session;
+	}
 
-    public JSSESupport(SSLSession session) {
-        this.session = session;
-    }
+	@Override
+	public String getCipherSuite() throws IOException
+	{
+		// Look up the current SSLSession
+		if (session == null)
+			return null;
+		return session.getCipherSuite();
+	}
 
-    @Override
-    public String getCipherSuite() throws IOException {
-        // Look up the current SSLSession
-        if (session == null)
-            return null;
-        return session.getCipherSuite();
-    }
+	@Override
+	public java.security.cert.X509Certificate[] getPeerCertificateChain() throws IOException
+	{
+		// Look up the current SSLSession
+		if (session == null)
+			return null;
 
-    @Override
-    public java.security.cert.X509Certificate[] getPeerCertificateChain() throws IOException {
-        // Look up the current SSLSession
-        if (session == null)
-            return null;
+		Certificate[] certs = null;
+		try {
+			certs = session.getPeerCertificates();
+		} catch (Throwable t) {
+			log.debug(sm.getString("jsseSupport.clientCertError"), t);
+			return null;
+		}
+		if (certs == null)
+			return null;
 
-        Certificate [] certs=null;
-        try {
-            certs = session.getPeerCertificates();
-        } catch( Throwable t ) {
-            log.debug(sm.getString("jsseSupport.clientCertError"), t);
-            return null;
-        }
-        if( certs==null ) return null;
+		java.security.cert.X509Certificate[] x509Certs = new java.security.cert.X509Certificate[certs.length];
+		for (int i = 0; i < certs.length; i++) {
+			if (certs[i] instanceof java.security.cert.X509Certificate) {
+				// always currently true with the JSSE 1.1.x
+				x509Certs[i] = (java.security.cert.X509Certificate) certs[i];
+			} else {
+				try {
+					byte[] buffer = certs[i].getEncoded();
+					CertificateFactory cf = CertificateFactory.getInstance("X.509");
+					ByteArrayInputStream stream = new ByteArrayInputStream(buffer);
+					x509Certs[i] = (java.security.cert.X509Certificate) cf.generateCertificate(stream);
+				} catch (Exception ex) {
+					log.info(sm.getString("jseeSupport.certTranslationError", certs[i]), ex);
+					return null;
+				}
+			}
+			if (log.isTraceEnabled())
+				log.trace("Cert #" + i + " = " + x509Certs[i]);
+		}
+		if (x509Certs.length < 1)
+			return null;
+		return x509Certs;
+	}
 
-        java.security.cert.X509Certificate [] x509Certs =
-            new java.security.cert.X509Certificate[certs.length];
-        for(int i=0; i < certs.length; i++) {
-            if (certs[i] instanceof java.security.cert.X509Certificate ) {
-                // always currently true with the JSSE 1.1.x
-                x509Certs[i] = (java.security.cert.X509Certificate) certs[i];
-            } else {
-                try {
-                    byte [] buffer = certs[i].getEncoded();
-                    CertificateFactory cf =
-                        CertificateFactory.getInstance("X.509");
-                    ByteArrayInputStream stream =
-                        new ByteArrayInputStream(buffer);
-                    x509Certs[i] = (java.security.cert.X509Certificate)
-                            cf.generateCertificate(stream);
-                } catch(Exception ex) {
-                    log.info(sm.getString(
-                            "jseeSupport.certTranslationError", certs[i]), ex);
-                    return null;
-                }
-            }
-            if(log.isTraceEnabled())
-                log.trace("Cert #" + i + " = " + x509Certs[i]);
-        }
-        if(x509Certs.length < 1)
-            return null;
-        return x509Certs;
-    }
+	/**
+	 * {@inheritDoc}
+	 * <p>
+	 * This returns the effective bits for the current cipher suite.
+	 */
+	@Override
+	public Integer getKeySize() throws IOException
+	{
+		// Look up the current SSLSession
+		if (session == null) {
+			return null;
+		}
 
+		return keySizeCache.get(session.getCipherSuite());
+	}
 
-    /**
-     * {@inheritDoc}
-     * <p>
-     * This returns the effective bits for the current cipher suite.
-     */
-    @Override
-    public Integer getKeySize() throws IOException {
-        // Look up the current SSLSession
-        if (session == null) {
-            return null;
-        }
+	@Override
+	public String getSessionId() throws IOException
+	{
+		// Look up the current SSLSession
+		if (session == null)
+			return null;
+		// Expose ssl_session (getId)
+		byte[] ssl_session = session.getId();
+		if (ssl_session == null)
+			return null;
+		StringBuilder buf = new StringBuilder();
+		for (int x = 0; x < ssl_session.length; x++) {
+			String digit = Integer.toHexString(ssl_session[x]);
+			if (digit.length() < 2)
+				buf.append('0');
+			if (digit.length() > 2)
+				digit = digit.substring(digit.length() - 2);
+			buf.append(digit);
+		}
+		return buf.toString();
+	}
 
-        return keySizeCache.get(session.getCipherSuite());
-    }
+	public void setSession(SSLSession session)
+	{
+		this.session = session;
+	}
 
-    @Override
-    public String getSessionId()
-        throws IOException {
-        // Look up the current SSLSession
-        if (session == null)
-            return null;
-        // Expose ssl_session (getId)
-        byte [] ssl_session = session.getId();
-        if ( ssl_session == null)
-            return null;
-        StringBuilder buf=new StringBuilder();
-        for(int x=0; x<ssl_session.length; x++) {
-            String digit=Integer.toHexString(ssl_session[x]);
-            if (digit.length()<2) buf.append('0');
-            if (digit.length()>2) digit=digit.substring(digit.length()-2);
-            buf.append(digit);
-        }
-        return buf.toString();
-    }
+	/**
+	 * Invalidate the session this support object is associated with.
+	 */
+	@Override
+	public void invalidateSession()
+	{
+		session.invalidate();
+	}
 
-
-    public void setSession(SSLSession session) {
-        this.session = session;
-    }
-
-
-    /**
-     * Invalidate the session this support object is associated with.
-     */
-    @Override
-    public void invalidateSession() {
-        session.invalidate();
-    }
-
-    @Override
-    public String getProtocol() throws IOException {
-        if (session == null) {
-           return null;
-        }
-       return session.getProtocol();
-   }
+	@Override
+	public String getProtocol() throws IOException
+	{
+		if (session == null) {
+			return null;
+		}
+		return session.getProtocol();
+	}
 }
-

@@ -23,17 +23,19 @@ package org.apache.tomcat.dbcp.pool2;
  * using allowing more informed decisions and reporting to be made regarding
  * abandoned objects.
  *
- * @param <T>   The type of object provided by the pool.
+ * @param <T>
+ *            The type of object provided by the pool.
  *
  * @since 2.0
  */
 public interface UsageTracking<T> {
 
-    /**
-     * This method is called every time a pooled object is used to enable the pool to
-     * better track borrowed objects.
-     *
-     * @param pooledObject  The object that is being used
-     */
-    void use(T pooledObject);
+	/**
+	 * This method is called every time a pooled object is used to enable the
+	 * pool to better track borrowed objects.
+	 *
+	 * @param pooledObject
+	 *            The object that is being used
+	 */
+	void use(T pooledObject);
 }

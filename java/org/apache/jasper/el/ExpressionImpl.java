@@ -26,19 +26,18 @@ import javax.servlet.jsp.el.VariableResolver;
 @Deprecated
 public final class ExpressionImpl extends Expression {
 
-    private final ValueExpression ve;
-    private final ExpressionFactory factory;
+	private final ValueExpression ve;
+	private final ExpressionFactory factory;
 
+	public ExpressionImpl(ValueExpression ve, ExpressionFactory factory) {
+		this.ve = ve;
+		this.factory = factory;
+	}
 
-    public ExpressionImpl(ValueExpression ve, ExpressionFactory factory) {
-        this.ve = ve;
-        this.factory = factory;
-    }
-
-    @Override
-    public Object evaluate(VariableResolver vResolver) throws ELException {
-        ELContext ctx =
-                new ELContextImpl(new ELResolverImpl(vResolver, factory));
-        return ve.getValue(ctx);
-    }
+	@Override
+	public Object evaluate(VariableResolver vResolver) throws ELException
+	{
+		ELContext ctx = new ELContextImpl(new ELResolverImpl(vResolver, factory));
+		return ve.getValue(ctx);
+	}
 }

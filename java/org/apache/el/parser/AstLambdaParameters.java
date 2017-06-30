@@ -19,25 +19,29 @@ package org.apache.el.parser;
 
 public class AstLambdaParameters extends SimpleNode {
 
-    public AstLambdaParameters(int id) {
-        super(id);
-    }
+	public AstLambdaParameters(int id) {
+		super(id);
+	}
 
-    @Override
-    public String toString() {
-        // Purely for debug purposes. May not be complete or correct. Certainly
-        // is not efficient. Be sure not to call this from 'real' code.
-        StringBuilder result = new StringBuilder();
-        result.append('(');
-        if (children != null) {
-            for (Node n : children) {
-                result.append(n.toString());
-                result.append(',');
-            }
-        }
-        result.append(")->");
-        return result.toString();
-    }
+	@Override
+	public String toString()
+	{
+		// Purely for debug purposes. May not be complete or correct. Certainly
+		// is not efficient. Be sure not to call this from 'real' code.
+		StringBuilder result = new StringBuilder();
+		result.append('(');
+		if (children != null) {
+			for (Node n : children) {
+				result.append(n.toString());
+				result.append(',');
+			}
+		}
+		result.append(")->");
+		return result.toString();
+	}
 
 }
-/* JavaCC - OriginalChecksum=a8c1609257dac59e41c43d6ed91072c6 (do not edit this line) */
+/*
+ * JavaCC - OriginalChecksum=a8c1609257dac59e41c43d6ed91072c6 (do not edit this
+ * line)
+ */

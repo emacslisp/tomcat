@@ -57,315 +57,355 @@ import java.util.List;
  */
 public class StoreDescription {
 
-    private String id;
+	private String id;
 
-    private String tag;
+	private String tag;
 
-    private String tagClass;
+	private String tagClass;
 
-    private boolean standard = false;
+	private boolean standard = false;
 
-    private boolean backup = false;
+	private boolean backup = false;
 
-    private boolean externalAllowed = false;
+	private boolean externalAllowed = false;
 
-    private boolean externalOnly = false;
+	private boolean externalOnly = false;
 
-    private boolean myDefault = false;
+	private boolean myDefault = false;
 
-    private boolean attributes = true;
+	private boolean attributes = true;
 
-    private String storeFactoryClass;
+	private String storeFactoryClass;
 
-    private IStoreFactory storeFactory;
+	private IStoreFactory storeFactory;
 
-    private String storeWriterClass;
+	private String storeWriterClass;
 
-    private boolean children = false;
+	private boolean children = false;
 
-    private List<String> transientAttributes;
+	private List<String> transientAttributes;
 
-    private List<String> transientChildren;
+	private List<String> transientChildren;
 
-    private boolean storeSeparate = false;
+	private boolean storeSeparate = false;
 
-    /**
-     * @return Returns the external.
-     */
-    public boolean isExternalAllowed() {
-        return externalAllowed;
-    }
+	/**
+	 * @return Returns the external.
+	 */
+	public boolean isExternalAllowed()
+	{
+		return externalAllowed;
+	}
 
-    /**
-     * @param external
-     *            The external to set.
-     */
-    public void setExternalAllowed(boolean external) {
-        this.externalAllowed = external;
-    }
+	/**
+	 * @param external
+	 *            The external to set.
+	 */
+	public void setExternalAllowed(boolean external)
+	{
+		this.externalAllowed = external;
+	}
 
-    public boolean isExternalOnly() {
-        return externalOnly;
-    }
+	public boolean isExternalOnly()
+	{
+		return externalOnly;
+	}
 
-    public void setExternalOnly(boolean external) {
-        this.externalOnly = external;
-    }
+	public void setExternalOnly(boolean external)
+	{
+		this.externalOnly = external;
+	}
 
-    /**
-     * @return Returns the standard.
-     */
-    public boolean isStandard() {
-        return standard;
-    }
+	/**
+	 * @return Returns the standard.
+	 */
+	public boolean isStandard()
+	{
+		return standard;
+	}
 
-    /**
-     * @param standard
-     *            The standard to set.
-     */
-    public void setStandard(boolean standard) {
-        this.standard = standard;
-    }
+	/**
+	 * @param standard
+	 *            The standard to set.
+	 */
+	public void setStandard(boolean standard)
+	{
+		this.standard = standard;
+	}
 
-    /**
-     * @return Returns the backup.
-     */
-    public boolean isBackup() {
-        return backup;
-    }
+	/**
+	 * @return Returns the backup.
+	 */
+	public boolean isBackup()
+	{
+		return backup;
+	}
 
-    /**
-     * @param backup
-     *            The backup to set.
-     */
-    public void setBackup(boolean backup) {
-        this.backup = backup;
-    }
+	/**
+	 * @param backup
+	 *            The backup to set.
+	 */
+	public void setBackup(boolean backup)
+	{
+		this.backup = backup;
+	}
 
-    /**
-     * @return Returns the myDefault.
-     */
-    public boolean isDefault() {
-        return myDefault;
-    }
+	/**
+	 * @return Returns the myDefault.
+	 */
+	public boolean isDefault()
+	{
+		return myDefault;
+	}
 
-    /**
-     * @param aDefault
-     *            The myDefault to set.
-     */
-    public void setDefault(boolean aDefault) {
-        this.myDefault = aDefault;
-    }
+	/**
+	 * @param aDefault
+	 *            The myDefault to set.
+	 */
+	public void setDefault(boolean aDefault)
+	{
+		this.myDefault = aDefault;
+	}
 
-    /**
-     * @return Returns the storeFactory.
-     */
-    public String getStoreFactoryClass() {
-        return storeFactoryClass;
-    }
+	/**
+	 * @return Returns the storeFactory.
+	 */
+	public String getStoreFactoryClass()
+	{
+		return storeFactoryClass;
+	}
 
-    /**
-     * @param storeFactoryClass
-     *            The storeFactory to set.
-     */
-    public void setStoreFactoryClass(String storeFactoryClass) {
-        this.storeFactoryClass = storeFactoryClass;
-    }
+	/**
+	 * @param storeFactoryClass
+	 *            The storeFactory to set.
+	 */
+	public void setStoreFactoryClass(String storeFactoryClass)
+	{
+		this.storeFactoryClass = storeFactoryClass;
+	}
 
-    /**
-     * @return Returns the storeFactory.
-     */
-    public IStoreFactory getStoreFactory() {
-        return storeFactory;
-    }
+	/**
+	 * @return Returns the storeFactory.
+	 */
+	public IStoreFactory getStoreFactory()
+	{
+		return storeFactory;
+	}
 
-    /**
-     * @param storeFactory
-     *            The storeFactory to set.
-     */
-    public void setStoreFactory(IStoreFactory storeFactory) {
-        this.storeFactory = storeFactory;
-    }
+	/**
+	 * @param storeFactory
+	 *            The storeFactory to set.
+	 */
+	public void setStoreFactory(IStoreFactory storeFactory)
+	{
+		this.storeFactory = storeFactory;
+	}
 
-    /**
-     * @return Returns the storeWriterClass.
-     */
-    public String getStoreWriterClass() {
-        return storeWriterClass;
-    }
+	/**
+	 * @return Returns the storeWriterClass.
+	 */
+	public String getStoreWriterClass()
+	{
+		return storeWriterClass;
+	}
 
-    /**
-     * @param storeWriterClass
-     *            The storeWriterClass to set.
-     */
-    public void setStoreWriterClass(String storeWriterClass) {
-        this.storeWriterClass = storeWriterClass;
-    }
+	/**
+	 * @param storeWriterClass
+	 *            The storeWriterClass to set.
+	 */
+	public void setStoreWriterClass(String storeWriterClass)
+	{
+		this.storeWriterClass = storeWriterClass;
+	}
 
-    /**
-     * @return Returns the tagClass.
-     */
-    public String getTag() {
-        return tag;
-    }
+	/**
+	 * @return Returns the tagClass.
+	 */
+	public String getTag()
+	{
+		return tag;
+	}
 
-    /**
-     * @param tag
-     *            The tag to set.
-     */
-    public void setTag(String tag) {
-        this.tag = tag;
-    }
+	/**
+	 * @param tag
+	 *            The tag to set.
+	 */
+	public void setTag(String tag)
+	{
+		this.tag = tag;
+	}
 
-    /**
-     * @return Returns the tagClass.
-     */
-    public String getTagClass() {
-        return tagClass;
-    }
+	/**
+	 * @return Returns the tagClass.
+	 */
+	public String getTagClass()
+	{
+		return tagClass;
+	}
 
-    /**
-     * @param tagClass
-     *            The tagClass to set.
-     */
-    public void setTagClass(String tagClass) {
-        this.tagClass = tagClass;
-    }
+	/**
+	 * @param tagClass
+	 *            The tagClass to set.
+	 */
+	public void setTagClass(String tagClass)
+	{
+		this.tagClass = tagClass;
+	}
 
-    /**
-     * @return Returns the transientAttributes.
-     */
-    public List<String> getTransientAttributes() {
-        return transientAttributes;
-    }
+	/**
+	 * @return Returns the transientAttributes.
+	 */
+	public List<String> getTransientAttributes()
+	{
+		return transientAttributes;
+	}
 
-    /**
-     * @param transientAttributes
-     *            The transientAttributes to set.
-     */
-    public void setTransientAttributes(List<String> transientAttributes) {
-        this.transientAttributes = transientAttributes;
-    }
+	/**
+	 * @param transientAttributes
+	 *            The transientAttributes to set.
+	 */
+	public void setTransientAttributes(List<String> transientAttributes)
+	{
+		this.transientAttributes = transientAttributes;
+	}
 
-    public void addTransientAttribute(String attribute) {
-        if (transientAttributes == null)
-            transientAttributes = new ArrayList<>();
-        transientAttributes.add(attribute);
-    }
+	public void addTransientAttribute(String attribute)
+	{
+		if (transientAttributes == null)
+			transientAttributes = new ArrayList<>();
+		transientAttributes.add(attribute);
+	}
 
-    public void removeTransientAttribute(String attribute) {
-        if (transientAttributes != null)
-            transientAttributes.remove(attribute);
-    }
+	public void removeTransientAttribute(String attribute)
+	{
+		if (transientAttributes != null)
+			transientAttributes.remove(attribute);
+	}
 
-    /**
-     * @return Returns the transientChildren.
-     */
-    public List<String> getTransientChildren() {
-        return transientChildren;
-    }
+	/**
+	 * @return Returns the transientChildren.
+	 */
+	public List<String> getTransientChildren()
+	{
+		return transientChildren;
+	}
 
-    /**
-     * @param transientChildren
-     *            The transientChildren to set.
-     */
-    public void setTransientChildren(List<String> transientChildren) {
-        this.transientChildren = transientChildren;
-    }
+	/**
+	 * @param transientChildren
+	 *            The transientChildren to set.
+	 */
+	public void setTransientChildren(List<String> transientChildren)
+	{
+		this.transientChildren = transientChildren;
+	}
 
-    public void addTransientChild(String classname) {
-        if (transientChildren == null)
-            transientChildren = new ArrayList<>();
-        transientChildren.add(classname);
-    }
+	public void addTransientChild(String classname)
+	{
+		if (transientChildren == null)
+			transientChildren = new ArrayList<>();
+		transientChildren.add(classname);
+	}
 
-    public void removeTransientChild(String classname) {
-        if (transientChildren != null)
-            transientChildren.remove(classname);
-    }
+	public void removeTransientChild(String classname)
+	{
+		if (transientChildren != null)
+			transientChildren.remove(classname);
+	}
 
-    /**
-     * Is child transient, please don't save this.
-     *
-     * @param classname The class name to check
-     * @return is classname attribute?
-     */
-    public boolean isTransientChild(String classname) {
-        if (transientChildren != null)
-            return transientChildren.contains(classname);
-        return false;
-    }
+	/**
+	 * Is child transient, please don't save this.
+	 *
+	 * @param classname
+	 *            The class name to check
+	 * @return is classname attribute?
+	 */
+	public boolean isTransientChild(String classname)
+	{
+		if (transientChildren != null)
+			return transientChildren.contains(classname);
+		return false;
+	}
 
-    /**
-     * Is attribute transient, please don't save this.
-     *
-     * @param attribute The attribute name to check
-     * @return is transient attribute?
-     */
-    public boolean isTransientAttribute(String attribute) {
-        if (transientAttributes != null)
-            return transientAttributes.contains(attribute);
-        return false;
-    }
+	/**
+	 * Is attribute transient, please don't save this.
+	 *
+	 * @param attribute
+	 *            The attribute name to check
+	 * @return is transient attribute?
+	 */
+	public boolean isTransientAttribute(String attribute)
+	{
+		if (transientAttributes != null)
+			return transientAttributes.contains(attribute);
+		return false;
+	}
 
-    /**
-     * Return the real id or TagClass
-     *
-     * @return Returns the id.
-     */
-    public String getId() {
-        if (id != null)
-            return id;
-        else
-            return getTagClass();
-    }
+	/**
+	 * Return the real id or TagClass
+	 *
+	 * @return Returns the id.
+	 */
+	public String getId()
+	{
+		if (id != null)
+			return id;
+		else
+			return getTagClass();
+	}
 
-    /**
-     * @param id
-     *            The id to set.
-     */
-    public void setId(String id) {
-        this.id = id;
-    }
+	/**
+	 * @param id
+	 *            The id to set.
+	 */
+	public void setId(String id)
+	{
+		this.id = id;
+	}
 
-    /**
-     * @return Returns the attributes.
-     */
-    public boolean isAttributes() {
-        return attributes;
-    }
+	/**
+	 * @return Returns the attributes.
+	 */
+	public boolean isAttributes()
+	{
+		return attributes;
+	}
 
-    /**
-     * @param attributes
-     *            The attributes to set.
-     */
-    public void setAttributes(boolean attributes) {
-        this.attributes = attributes;
-    }
+	/**
+	 * @param attributes
+	 *            The attributes to set.
+	 */
+	public void setAttributes(boolean attributes)
+	{
+		this.attributes = attributes;
+	}
 
-    /**
-     * @return True if it's a separate store
-     */
-    public boolean isStoreSeparate() {
-        return storeSeparate;
-    }
+	/**
+	 * @return True if it's a separate store
+	 */
+	public boolean isStoreSeparate()
+	{
+		return storeSeparate;
+	}
 
-    public void setStoreSeparate(boolean storeSeparate) {
-        this.storeSeparate = storeSeparate;
-    }
+	public void setStoreSeparate(boolean storeSeparate)
+	{
+		this.storeSeparate = storeSeparate;
+	}
 
-    /**
-     * @return Returns the children.
-     */
-    public boolean isChildren() {
-        return children;
-    }
+	/**
+	 * @return Returns the children.
+	 */
+	public boolean isChildren()
+	{
+		return children;
+	}
 
-    /**
-     * @param children
-     *            The children to set.
-     */
-    public void setChildren(boolean children) {
-        this.children = children;
-    }
+	/**
+	 * @param children
+	 *            The children to set.
+	 */
+	public void setChildren(boolean children)
+	{
+		this.children = children;
+	}
 }

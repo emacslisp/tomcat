@@ -21,14 +21,13 @@ package org.apache.coyote.http2;
  */
 class ConnectionException extends Http2Exception {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    ConnectionException(String msg, Http2Error error) {
-        super(msg, error);
-    }
+	ConnectionException(String msg, Http2Error error) {
+		super(msg, error);
+	}
 
-
-    ConnectionException(String msg, Http2Error error, Throwable cause) {
-        super(msg, error, cause);
-    }
+	ConnectionException(String msg, Http2Error error, Throwable cause) {
+		super(msg, error, cause);
+	}
 }

@@ -24,61 +24,61 @@ import javax.net.ssl.SSLParameters;
 
 class Jre9Compat extends JreCompat {
 
-    private static final Class<?> inaccessibleObjectExceptionClazz;
-    private static final Method setApplicationProtocolsMethod;
-    private static final Method getApplicationProtocolMethod;
+	private static final Class<?> inaccessibleObjectExceptionClazz;
+	private static final Method setApplicationProtocolsMethod;
+	private static final Method getApplicationProtocolMethod;
 
-    static {
-        Class<?> c1 = null;
-        Method m2 = null;
-        Method m3 = null;
+	static {
+		Class<?> c1 = null;
+		Method m2 = null;
+		Method m3 = null;
 
-        try {
-            c1 = Class.forName("java.lang.reflect.InaccessibleObjectException");
-            m2 = SSLParameters.class.getMethod("setApplicationProtocols", String[].class);
-            m3 = SSLEngine.class.getMethod("getApplicationProtocol");
-        } catch (SecurityException | NoSuchMethodException e) {
-            // Should never happen
-        } catch (ClassNotFoundException e) {
-            // Must be Java 8
-        }
-        inaccessibleObjectExceptionClazz = c1;
-        setApplicationProtocolsMethod = m2;
-        getApplicationProtocolMethod = m3;
-    }
+		try {
+			c1 = Class.forName("java.lang.reflect.InaccessibleObjectException");
+			m2 = SSLParameters.class.getMethod("setApplicationProtocols", String[].class);
+			m3 = SSLEngine.class.getMethod("getApplicationProtocol");
+		} catch (SecurityException | NoSuchMethodException e) {
+			// Should never happen
+		} catch (ClassNotFoundException e) {
+			// Must be Java 8
+		}
+		inaccessibleObjectExceptionClazz = c1;
+		setApplicationProtocolsMethod = m2;
+		getApplicationProtocolMethod = m3;
+	}
 
+	static boolean isSupported()
+	{
+		return inaccessibleObjectExceptionClazz != null;
+	}
 
-    static boolean isSupported() {
-        return inaccessibleObjectExceptionClazz != null;
-    }
+	@Override
+	public boolean isInstanceOfInaccessibleObjectException(Throwable t)
+	{
+		if (t == null) {
+			return false;
+		}
 
+		return inaccessibleObjectExceptionClazz.isAssignableFrom(t.getClass());
+	}
 
-    @Override
-    public boolean isInstanceOfInaccessibleObjectException(Throwable t) {
-        if (t == null) {
-            return false;
-        }
+	@Override
+	public void setApplicationProtocols(SSLParameters sslParameters, String[] protocols)
+	{
+		try {
+			setApplicationProtocolsMethod.invoke(sslParameters, (Object) protocols);
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			throw new UnsupportedOperationException(e);
+		}
+	}
 
-        return inaccessibleObjectExceptionClazz.isAssignableFrom(t.getClass());
-    }
-
-
-    @Override
-    public void setApplicationProtocols(SSLParameters sslParameters, String[] protocols) {
-        try {
-            setApplicationProtocolsMethod.invoke(sslParameters, (Object) protocols);
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new UnsupportedOperationException(e);
-        }
-    }
-
-
-    @Override
-    public String getApplicationProtocol(SSLEngine sslEngine) {
-        try {
-            return (String) getApplicationProtocolMethod.invoke(sslEngine);
-        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new UnsupportedOperationException(e);
-        }
-    }
+	@Override
+	public String getApplicationProtocol(SSLEngine sslEngine)
+	{
+		try {
+			return (String) getApplicationProtocolMethod.invoke(sslEngine);
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			throw new UnsupportedOperationException(e);
+		}
+	}
 }

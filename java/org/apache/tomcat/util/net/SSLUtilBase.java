@@ -35,146 +35,141 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public abstract class SSLUtilBase implements SSLUtil {
 
-    private static final Log log = LogFactory.getLog(SSLUtilBase.class);
-    private static final StringManager sm = StringManager.getManager(SSLUtilBase.class);
+	private static final Log log = LogFactory.getLog(SSLUtilBase.class);
+	private static final StringManager sm = StringManager.getManager(SSLUtilBase.class);
 
-    protected final SSLHostConfigCertificate certificate;
+	protected final SSLHostConfigCertificate certificate;
 
-    private final String[] enabledProtocols;
-    private final String[] enabledCiphers;
+	private final String[] enabledProtocols;
+	private final String[] enabledCiphers;
 
+	protected SSLUtilBase(SSLHostConfigCertificate certificate) {
+		this.certificate = certificate;
+		SSLHostConfig sslHostConfig = certificate.getSSLHostConfig();
 
-    protected SSLUtilBase(SSLHostConfigCertificate certificate) {
-        this.certificate = certificate;
-        SSLHostConfig sslHostConfig = certificate.getSSLHostConfig();
+		// Calculate the enabled protocols
+		Set<String> configuredProtocols = sslHostConfig.getProtocols();
+		Set<String> implementedProtocols = getImplementedProtocols();
+		List<String> enabledProtocols = getEnabled("protocols", getLog(), true, configuredProtocols,
+				implementedProtocols);
+		if (enabledProtocols.contains("SSLv3")) {
+			log.warn(sm.getString("jsse.ssl3"));
+		}
+		this.enabledProtocols = enabledProtocols.toArray(new String[enabledProtocols.size()]);
 
-        // Calculate the enabled protocols
-        Set<String> configuredProtocols = sslHostConfig.getProtocols();
-        Set<String> implementedProtocols = getImplementedProtocols();
-        List<String> enabledProtocols =
-                getEnabled("protocols", getLog(), true, configuredProtocols, implementedProtocols);
-        if (enabledProtocols.contains("SSLv3")) {
-            log.warn(sm.getString("jsse.ssl3"));
-        }
-        this.enabledProtocols = enabledProtocols.toArray(new String[enabledProtocols.size()]);
+		// Calculate the enabled ciphers
+		List<String> configuredCiphers = sslHostConfig.getJsseCipherNames();
+		Set<String> implementedCiphers = getImplementedCiphers();
+		List<String> enabledCiphers = getEnabled("ciphers", getLog(), false, configuredCiphers, implementedCiphers);
+		this.enabledCiphers = enabledCiphers.toArray(new String[enabledCiphers.size()]);
+	}
 
-        // Calculate the enabled ciphers
-        List<String> configuredCiphers = sslHostConfig.getJsseCipherNames();
-        Set<String> implementedCiphers = getImplementedCiphers();
-        List<String> enabledCiphers =
-                getEnabled("ciphers", getLog(), false, configuredCiphers, implementedCiphers);
-        this.enabledCiphers = enabledCiphers.toArray(new String[enabledCiphers.size()]);
-    }
+	static <T> List<T> getEnabled(String name, Log log, boolean warnOnSkip, Collection<T> configured,
+			Collection<T> implemented)
+	{
 
+		List<T> enabled = new ArrayList<>();
 
-    static <T> List<T> getEnabled(String name, Log log, boolean warnOnSkip, Collection<T> configured,
-            Collection<T> implemented) {
+		if (implemented.size() == 0) {
+			// Unable to determine the list of available protocols. This will
+			// have been logged previously.
+			// Use the configuredProtocols and hope they work. If not, an error
+			// will be generated when the list is used. Not ideal but no more
+			// can be done at this point.
+			enabled.addAll(configured);
+		} else {
+			enabled.addAll(configured);
+			enabled.retainAll(implemented);
 
-        List<T> enabled = new ArrayList<>();
+			if (enabled.isEmpty()) {
+				// Don't use the defaults in this case. They may be less secure
+				// than the configuration the user intended.
+				// Force the failure of the connector
+				throw new IllegalArgumentException(sm.getString("sslUtilBase.noneSupported", name, configured));
+			}
+			if (log.isDebugEnabled()) {
+				log.debug(sm.getString("sslUtilBase.active", name, enabled));
+			}
+			if (log.isDebugEnabled() || warnOnSkip) {
+				if (enabled.size() != configured.size()) {
+					List<T> skipped = new ArrayList<>();
+					skipped.addAll(configured);
+					skipped.removeAll(enabled);
+					String msg = sm.getString("sslUtilBase.skipped", name, skipped);
+					if (warnOnSkip) {
+						log.warn(msg);
+					} else {
+						log.debug(msg);
+					}
+				}
+			}
+		}
 
-        if (implemented.size() == 0) {
-            // Unable to determine the list of available protocols. This will
-            // have been logged previously.
-            // Use the configuredProtocols and hope they work. If not, an error
-            // will be generated when the list is used. Not ideal but no more
-            // can be done at this point.
-            enabled.addAll(configured);
-        } else {
-            enabled.addAll(configured);
-            enabled.retainAll(implemented);
+		return enabled;
+	}
 
-            if (enabled.isEmpty()) {
-                // Don't use the defaults in this case. They may be less secure
-                // than the configuration the user intended.
-                // Force the failure of the connector
-                throw new IllegalArgumentException(
-                        sm.getString("sslUtilBase.noneSupported", name, configured));
-            }
-            if (log.isDebugEnabled()) {
-                log.debug(sm.getString("sslUtilBase.active", name, enabled));
-            }
-            if (log.isDebugEnabled() || warnOnSkip) {
-                if (enabled.size() != configured.size()) {
-                    List<T> skipped = new ArrayList<>();
-                    skipped.addAll(configured);
-                    skipped.removeAll(enabled);
-                    String msg = sm.getString("sslUtilBase.skipped", name, skipped);
-                    if (warnOnSkip) {
-                        log.warn(msg);
-                    } else {
-                        log.debug(msg);
-                    }
-                }
-            }
-        }
+	/*
+	 * Gets the key- or truststore with the specified type, path, and password.
+	 */
+	static KeyStore getStore(String type, String provider, String path, String pass) throws IOException
+	{
 
-        return enabled;
-    }
+		KeyStore ks = null;
+		InputStream istream = null;
+		try {
+			if (provider == null) {
+				ks = KeyStore.getInstance(type);
+			} else {
+				ks = KeyStore.getInstance(type, provider);
+			}
+			if (!("PKCS11".equalsIgnoreCase(type) || "".equalsIgnoreCase(path)) || "NONE".equalsIgnoreCase(path)) {
+				istream = ConfigFileLoader.getInputStream(path);
+			}
 
+			char[] storePass = null;
+			if (pass != null && !"".equals(pass)) {
+				storePass = pass.toCharArray();
+			}
+			ks.load(istream, storePass);
+		} catch (FileNotFoundException fnfe) {
+			log.error(sm.getString("jsse.keystore_load_failed", type, path, fnfe.getMessage()), fnfe);
+			throw fnfe;
+		} catch (IOException ioe) {
+			// May be expected when working with a trust store
+			// Re-throw. Caller will catch and log as required
+			throw ioe;
+		} catch (Exception ex) {
+			String msg = sm.getString("jsse.keystore_load_failed", type, path, ex.getMessage());
+			log.error(msg, ex);
+			throw new IOException(msg);
+		} finally {
+			if (istream != null) {
+				try {
+					istream.close();
+				} catch (IOException ioe) {
+					// Do nothing
+				}
+			}
+		}
 
-    /*
-     * Gets the key- or truststore with the specified type, path, and password.
-     */
-    static KeyStore getStore(String type, String provider, String path,
-            String pass) throws IOException {
+		return ks;
+	}
 
-        KeyStore ks = null;
-        InputStream istream = null;
-        try {
-            if (provider == null) {
-                ks = KeyStore.getInstance(type);
-            } else {
-                ks = KeyStore.getInstance(type, provider);
-            }
-            if(!("PKCS11".equalsIgnoreCase(type) ||
-                    "".equalsIgnoreCase(path)) ||
-                    "NONE".equalsIgnoreCase(path)) {
-                istream = ConfigFileLoader.getInputStream(path);
-            }
+	@Override
+	public String[] getEnabledProtocols()
+	{
+		return enabledProtocols;
+	}
 
-            char[] storePass = null;
-            if (pass != null && !"".equals(pass)) {
-                storePass = pass.toCharArray();
-            }
-            ks.load(istream, storePass);
-        } catch (FileNotFoundException fnfe) {
-            log.error(sm.getString("jsse.keystore_load_failed", type, path,
-                    fnfe.getMessage()), fnfe);
-            throw fnfe;
-        } catch (IOException ioe) {
-            // May be expected when working with a trust store
-            // Re-throw. Caller will catch and log as required
-            throw ioe;
-        } catch(Exception ex) {
-            String msg = sm.getString("jsse.keystore_load_failed", type, path,
-                    ex.getMessage());
-            log.error(msg, ex);
-            throw new IOException(msg);
-        } finally {
-            if (istream != null) {
-                try {
-                    istream.close();
-                } catch (IOException ioe) {
-                    // Do nothing
-                }
-            }
-        }
+	@Override
+	public String[] getEnabledCiphers()
+	{
+		return enabledCiphers;
+	}
 
-        return ks;
-    }
+	protected abstract Set<String> getImplementedProtocols();
 
+	protected abstract Set<String> getImplementedCiphers();
 
-    @Override
-    public String[] getEnabledProtocols() {
-        return enabledProtocols;
-    }
-
-    @Override
-    public String[] getEnabledCiphers() {
-        return enabledCiphers;
-    }
-
-    protected abstract Set<String> getImplementedProtocols();
-    protected abstract Set<String> getImplementedCiphers();
-    protected abstract Log getLog();
+	protected abstract Log getLog();
 }

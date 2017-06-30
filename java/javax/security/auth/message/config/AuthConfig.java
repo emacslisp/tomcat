@@ -20,13 +20,13 @@ import javax.security.auth.message.MessageInfo;
 
 public interface AuthConfig {
 
-    String getMessageLayer();
+	String getMessageLayer();
 
-    String getAppContext();
+	String getAppContext();
 
-    String getAuthContextID(MessageInfo messageInfo);
+	String getAuthContextID(MessageInfo messageInfo);
 
-    void refresh();
+	void refresh();
 
-    boolean isProtected();
+	boolean isProtected();
 }

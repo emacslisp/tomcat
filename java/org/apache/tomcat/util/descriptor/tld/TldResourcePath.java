@@ -40,122 +40,135 @@ import org.apache.tomcat.util.scan.JarFactory;
  * to a URL and entryName when using this implementation.
  */
 public class TldResourcePath {
-    private final URL url;
-    private final String webappPath;
-    private final String entryName;
+	private final URL url;
+	private final String webappPath;
+	private final String entryName;
 
-    /**
-     * Constructor identifying a TLD resource directly.
-     *
-     * @param url        the location of the TLD
-     * @param webappPath the web application path, if any, of the TLD
-     */
-    public TldResourcePath(URL url, String webappPath) {
-        this(url, webappPath, null);
-    }
+	/**
+	 * Constructor identifying a TLD resource directly.
+	 *
+	 * @param url
+	 *            the location of the TLD
+	 * @param webappPath
+	 *            the web application path, if any, of the TLD
+	 */
+	public TldResourcePath(URL url, String webappPath) {
+		this(url, webappPath, null);
+	}
 
-    /**
-     * Constructor identifying a TLD packaged within a JAR file.
-     *
-     * @param url        the location of the JAR
-     * @param webappPath the web application path, if any, of the JAR
-     * @param entryName  the name of the entry in the JAR
-     */
-    public TldResourcePath(URL url, String webappPath, String entryName) {
-        this.url = url;
-        this.webappPath = webappPath;
-        this.entryName = entryName;
-    }
+	/**
+	 * Constructor identifying a TLD packaged within a JAR file.
+	 *
+	 * @param url
+	 *            the location of the JAR
+	 * @param webappPath
+	 *            the web application path, if any, of the JAR
+	 * @param entryName
+	 *            the name of the entry in the JAR
+	 */
+	public TldResourcePath(URL url, String webappPath, String entryName) {
+		this.url = url;
+		this.webappPath = webappPath;
+		this.entryName = entryName;
+	}
 
-    /**
-     * Returns the URL of the TLD or of the JAR containing the TLD.
-     *
-     * @return the URL of the TLD
-     */
-    public URL getUrl() {
-        return url;
-    }
+	/**
+	 * Returns the URL of the TLD or of the JAR containing the TLD.
+	 *
+	 * @return the URL of the TLD
+	 */
+	public URL getUrl()
+	{
+		return url;
+	}
 
-    /**
-     * Returns the path within the web application, if any, that the resource
-     * returned by {@link #getUrl()} was obtained from.
-     *
-     * @return the web application path or @null if the the resource is not
-     *         located within a web application
-     */
-    public String getWebappPath() {
-        return webappPath;
-    }
+	/**
+	 * Returns the path within the web application, if any, that the resource
+	 * returned by {@link #getUrl()} was obtained from.
+	 *
+	 * @return the web application path or @null if the the resource is not
+	 *         located within a web application
+	 */
+	public String getWebappPath()
+	{
+		return webappPath;
+	}
 
-    /**
-     * Returns the name of the JAR entry that contains the TLD.
-     * May be null to indicate the URL refers directly to the TLD itself.
-     *
-     * @return the name of the JAR entry that contains the TLD
-     */
-    public String getEntryName() {
-        return entryName;
-    }
+	/**
+	 * Returns the name of the JAR entry that contains the TLD. May be null to
+	 * indicate the URL refers directly to the TLD itself.
+	 *
+	 * @return the name of the JAR entry that contains the TLD
+	 */
+	public String getEntryName()
+	{
+		return entryName;
+	}
 
-    /**
-     * Return the external form of the URL representing this TLD.
-     * This can be used as a canonical location for the TLD itself, for example,
-     * as the systemId to use when parsing its XML.
-     *
-     * @return the external form of the URL representing this TLD
-     */
-    public String toExternalForm() {
-        if (entryName == null) {
-            return url.toExternalForm();
-        } else {
-            return "jar:" + url.toExternalForm() + "!/" + entryName;
-        }
-    }
+	/**
+	 * Return the external form of the URL representing this TLD. This can be
+	 * used as a canonical location for the TLD itself, for example, as the
+	 * systemId to use when parsing its XML.
+	 *
+	 * @return the external form of the URL representing this TLD
+	 */
+	public String toExternalForm()
+	{
+		if (entryName == null) {
+			return url.toExternalForm();
+		} else {
+			return "jar:" + url.toExternalForm() + "!/" + entryName;
+		}
+	}
 
-    /**
-     * Opens a stream to access the TLD.
-     *
-     * @return a stream containing the TLD content
-     * @throws IOException if there was a problem opening the stream
-     */
-    public InputStream openStream() throws IOException {
-        if (entryName == null) {
-            return url.openStream();
-        } else {
-            URL entryUrl = JarFactory.getJarEntryURL(url, entryName);
-            return entryUrl.openStream();
-        }
-    }
+	/**
+	 * Opens a stream to access the TLD.
+	 *
+	 * @return a stream containing the TLD content
+	 * @throws IOException
+	 *             if there was a problem opening the stream
+	 */
+	public InputStream openStream() throws IOException
+	{
+		if (entryName == null) {
+			return url.openStream();
+		} else {
+			URL entryUrl = JarFactory.getJarEntryURL(url, entryName);
+			return entryUrl.openStream();
+		}
+	}
 
-    public Jar openJar() throws IOException {
-        if (entryName == null) {
-            return null;
-        } else {
-            return JarFactory.newInstance(url);
-        }
-    }
+	public Jar openJar() throws IOException
+	{
+		if (entryName == null) {
+			return null;
+		} else {
+			return JarFactory.newInstance(url);
+		}
+	}
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+	@Override
+	public boolean equals(Object o)
+	{
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
 
-        TldResourcePath other = (TldResourcePath) o;
+		TldResourcePath other = (TldResourcePath) o;
 
-        return url.equals(other.url) &&
-                Objects.equals(webappPath, other.webappPath) &&
-                Objects.equals(entryName, other.entryName);
-    }
+		return url.equals(other.url) && Objects.equals(webappPath, other.webappPath)
+				&& Objects.equals(entryName, other.entryName);
+	}
 
-    @Override
-    public int hashCode() {
-        int result = url.hashCode();
-        result = result * 31 + Objects.hashCode(webappPath);
-        result = result * 31 + Objects.hashCode(entryName);
-        return result;
-    }
+	@Override
+	public int hashCode()
+	{
+		int result = url.hashCode();
+		result = result * 31 + Objects.hashCode(webappPath);
+		result = result * 31 + Objects.hashCode(entryName);
+		return result;
+	}
 }

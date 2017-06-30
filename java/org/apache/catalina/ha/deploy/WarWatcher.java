@@ -35,191 +35,197 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public class WarWatcher {
 
-    /*--Static Variables----------------------------------------*/
-    private static final Log log = LogFactory.getLog(WarWatcher.class);
-    private static final StringManager sm = StringManager.getManager(WarWatcher.class);
+	/*--Static Variables----------------------------------------*/
+	private static final Log log = LogFactory.getLog(WarWatcher.class);
+	private static final StringManager sm = StringManager.getManager(WarWatcher.class);
 
-    /*--Instance Variables--------------------------------------*/
-    /**
-     * Directory to watch for war files
-     */
-    protected final File watchDir;
+	/*--Instance Variables--------------------------------------*/
+	/**
+	 * Directory to watch for war files
+	 */
+	protected final File watchDir;
 
-    /**
-     * Parent to be notified of changes
-     */
-    protected final FileChangeListener listener;
+	/**
+	 * Parent to be notified of changes
+	 */
+	protected final FileChangeListener listener;
 
-    /**
-     * Currently deployed files
-     */
-    protected final Map<String, WarInfo> currentStatus = new HashMap<>();
+	/**
+	 * Currently deployed files
+	 */
+	protected final Map<String, WarInfo> currentStatus = new HashMap<>();
 
-    /*--Constructor---------------------------------------------*/
+	/*--Constructor---------------------------------------------*/
 
-    public WarWatcher(FileChangeListener listener, File watchDir) {
-        this.listener = listener;
-        this.watchDir = watchDir;
-    }
+	public WarWatcher(FileChangeListener listener, File watchDir) {
+		this.listener = listener;
+		this.watchDir = watchDir;
+	}
 
-    /*--Logic---------------------------------------------------*/
+	/*--Logic---------------------------------------------------*/
 
-    /**
-     * check for modification and send notification to listener
-     */
-    public void check() {
-        if (log.isDebugEnabled())
-            log.debug(sm.getString("warWatcher.checkingWars", watchDir));
-        File[] list = watchDir.listFiles(new WarFilter());
-        if (list == null) {
-            log.warn(sm.getString("warWatcher.cantListWatchDir",
-                                  watchDir));
+	/**
+	 * check for modification and send notification to listener
+	 */
+	public void check()
+	{
+		if (log.isDebugEnabled())
+			log.debug(sm.getString("warWatcher.checkingWars", watchDir));
+		File[] list = watchDir.listFiles(new WarFilter());
+		if (list == null) {
+			log.warn(sm.getString("warWatcher.cantListWatchDir", watchDir));
 
-            list = new File[0];
-        }
-        //first make sure all the files are listed in our current status
-        for (int i = 0; i < list.length; i++) {
-            if(!list[i].exists())
-                log.warn(sm.getString("warWatcher.listedFileDoesNotExist",
-                                      list[i], watchDir));
+			list = new File[0];
+		}
+		// first make sure all the files are listed in our current status
+		for (int i = 0; i < list.length; i++) {
+			if (!list[i].exists())
+				log.warn(sm.getString("warWatcher.listedFileDoesNotExist", list[i], watchDir));
 
-            addWarInfo(list[i]);
-        }
+			addWarInfo(list[i]);
+		}
 
-        // Check all the status codes and update the FarmDeployer
-        for (Iterator<Map.Entry<String,WarInfo>> i =
-                currentStatus.entrySet().iterator(); i.hasNext();) {
-            Map.Entry<String,WarInfo> entry = i.next();
-            WarInfo info = entry.getValue();
-            if(log.isTraceEnabled())
-                log.trace(sm.getString("warWatcher.checkingWar",
-                                       info.getWar()));
-            int check = info.check();
-            if (check == 1) {
-                listener.fileModified(info.getWar());
-            } else if (check == -1) {
-                listener.fileRemoved(info.getWar());
-                //no need to keep in memory
-                i.remove();
-            }
-            if(log.isTraceEnabled())
-                log.trace(sm.getString("warWatcher.checkWarResult",
-                                       Integer.valueOf(check),
-                                       info.getWar()));
-        }
+		// Check all the status codes and update the FarmDeployer
+		for (Iterator<Map.Entry<String, WarInfo>> i = currentStatus.entrySet().iterator(); i.hasNext();) {
+			Map.Entry<String, WarInfo> entry = i.next();
+			WarInfo info = entry.getValue();
+			if (log.isTraceEnabled())
+				log.trace(sm.getString("warWatcher.checkingWar", info.getWar()));
+			int check = info.check();
+			if (check == 1) {
+				listener.fileModified(info.getWar());
+			} else if (check == -1) {
+				listener.fileRemoved(info.getWar());
+				// no need to keep in memory
+				i.remove();
+			}
+			if (log.isTraceEnabled())
+				log.trace(sm.getString("warWatcher.checkWarResult", Integer.valueOf(check), info.getWar()));
+		}
 
-    }
+	}
 
-    /**
-     * add cluster war to the watcher state
-     * @param warfile The WAR to add
-     */
-    protected void addWarInfo(File warfile) {
-        WarInfo info = currentStatus.get(warfile.getAbsolutePath());
-        if (info == null) {
-            info = new WarInfo(warfile);
-            info.setLastState(-1); //assume file is non existent
-            currentStatus.put(warfile.getAbsolutePath(), info);
-        }
-    }
+	/**
+	 * add cluster war to the watcher state
+	 * 
+	 * @param warfile
+	 *            The WAR to add
+	 */
+	protected void addWarInfo(File warfile)
+	{
+		WarInfo info = currentStatus.get(warfile.getAbsolutePath());
+		if (info == null) {
+			info = new WarInfo(warfile);
+			info.setLastState(-1); // assume file is non existent
+			currentStatus.put(warfile.getAbsolutePath(), info);
+		}
+	}
 
-    /**
-     * clear watcher state
-     */
-    public void clear() {
-        currentStatus.clear();
-    }
+	/**
+	 * clear watcher state
+	 */
+	public void clear()
+	{
+		currentStatus.clear();
+	}
 
+	/*--Inner classes-------------------------------------------*/
 
-    /*--Inner classes-------------------------------------------*/
+	/**
+	 * File name filter for war files
+	 */
+	protected static class WarFilter implements java.io.FilenameFilter {
+		@Override
+		public boolean accept(File path, String name)
+		{
+			if (name == null)
+				return false;
+			return name.endsWith(".war");
+		}
+	}
 
-    /**
-     * File name filter for war files
-     */
-    protected static class WarFilter implements java.io.FilenameFilter {
-        @Override
-        public boolean accept(File path, String name) {
-            if (name == null)
-                return false;
-            return name.endsWith(".war");
-        }
-    }
+	/**
+	 * File information on existing WAR files
+	 */
+	protected static class WarInfo {
+		protected final File war;
 
-    /**
-     * File information on existing WAR files
-     */
-    protected static class WarInfo {
-        protected final File war;
+		protected long lastChecked = 0;
 
-        protected long lastChecked = 0;
+		protected long lastState = 0;
 
-        protected long lastState = 0;
+		public WarInfo(File war) {
+			this.war = war;
+			this.lastChecked = war.lastModified();
+			if (!war.exists())
+				lastState = -1;
+		}
 
-        public WarInfo(File war) {
-            this.war = war;
-            this.lastChecked = war.lastModified();
-            if (!war.exists())
-                lastState = -1;
-        }
+		public boolean modified()
+		{
+			return war.exists() && war.lastModified() > lastChecked;
+		}
 
-        public boolean modified() {
-            return war.exists() && war.lastModified() > lastChecked;
-        }
+		public boolean exists()
+		{
+			return war.exists();
+		}
 
-        public boolean exists() {
-            return war.exists();
-        }
+		/**
+		 * Returns 1 if the file has been added/modified, 0 if the file is
+		 * unchanged and -1 if the file has been removed
+		 *
+		 * @return int 1=file added; 0=unchanged; -1=file removed
+		 */
+		public int check()
+		{
+			// file unchanged by default
+			int result = 0;
 
-        /**
-         * Returns 1 if the file has been added/modified, 0 if the file is
-         * unchanged and -1 if the file has been removed
-         *
-         * @return int 1=file added; 0=unchanged; -1=file removed
-         */
-        public int check() {
-            //file unchanged by default
-            int result = 0;
+			if (modified()) {
+				// file has changed - timestamp
+				result = 1;
+				lastState = result;
+			} else if ((!exists()) && (!(lastState == -1))) {
+				// file was removed
+				result = -1;
+				lastState = result;
+			} else if ((lastState == -1) && exists()) {
+				// file was added
+				result = 1;
+				lastState = result;
+			}
+			this.lastChecked = System.currentTimeMillis();
+			return result;
+		}
 
-            if (modified()) {
-                //file has changed - timestamp
-                result = 1;
-                lastState = result;
-            } else if ((!exists()) && (!(lastState == -1))) {
-                //file was removed
-                result = -1;
-                lastState = result;
-            } else if ((lastState == -1) && exists()) {
-                //file was added
-                result = 1;
-                lastState = result;
-            }
-            this.lastChecked = System.currentTimeMillis();
-            return result;
-        }
+		public File getWar()
+		{
+			return war;
+		}
 
-        public File getWar() {
-            return war;
-        }
+		@Override
+		public int hashCode()
+		{
+			return war.getAbsolutePath().hashCode();
+		}
 
-        @Override
-        public int hashCode() {
-            return war.getAbsolutePath().hashCode();
-        }
+		@Override
+		public boolean equals(Object other)
+		{
+			if (other instanceof WarInfo) {
+				WarInfo wo = (WarInfo) other;
+				return wo.getWar().equals(getWar());
+			} else {
+				return false;
+			}
+		}
 
-        @Override
-        public boolean equals(Object other) {
-            if (other instanceof WarInfo) {
-                WarInfo wo = (WarInfo) other;
-                return wo.getWar().equals(getWar());
-            } else {
-                return false;
-            }
-        }
+		protected void setLastState(int lastState)
+		{
+			this.lastState = lastState;
+		}
 
-        protected void setLastState(int lastState) {
-            this.lastState = lastState;
-        }
-
-    }
+	}
 
 }

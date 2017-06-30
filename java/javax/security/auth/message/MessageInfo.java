@@ -20,14 +20,14 @@ import java.util.Map;
 
 public interface MessageInfo {
 
-    Object getRequestMessage();
+	Object getRequestMessage();
 
-    Object getResponseMessage();
+	Object getResponseMessage();
 
-    void setRequestMessage(Object request);
+	void setRequestMessage(Object request);
 
-    void setResponseMessage(Object response);
+	void setResponseMessage(Object response);
 
-    @SuppressWarnings("rawtypes") // JASPIC API uses raw types
-    Map getMap();
+	@SuppressWarnings("rawtypes") // JASPIC API uses raw types
+	Map getMap();
 }

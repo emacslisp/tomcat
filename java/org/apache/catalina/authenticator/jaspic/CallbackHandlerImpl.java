@@ -39,81 +39,78 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public class CallbackHandlerImpl implements CallbackHandler {
 
-    private static final Log log = LogFactory.getLog(CallbackHandlerImpl.class);
-    private static final StringManager sm = StringManager.getManager(CallbackHandlerImpl.class);
+	private static final Log log = LogFactory.getLog(CallbackHandlerImpl.class);
+	private static final StringManager sm = StringManager.getManager(CallbackHandlerImpl.class);
 
-    private static CallbackHandler instance;
+	private static CallbackHandler instance;
 
+	static {
+		instance = new CallbackHandlerImpl();
+	}
 
-    static {
-        instance = new CallbackHandlerImpl();
-    }
+	public static CallbackHandler getInstance()
+	{
+		return instance;
+	}
 
+	private CallbackHandlerImpl() {
+		// Hide default constructor
+	}
 
-    public static CallbackHandler getInstance() {
-        return instance;
-    }
+	@Override
+	public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException
+	{
 
+		String name = null;
+		Principal principal = null;
+		Subject subject = null;
+		String[] groups = null;
 
-    private  CallbackHandlerImpl() {
-        // Hide default constructor
-    }
+		if (callbacks != null) {
+			// Need to combine data from multiple callbacks so use this to hold
+			// the data
+			// Process the callbacks
+			for (Callback callback : callbacks) {
+				if (callback instanceof CallerPrincipalCallback) {
+					CallerPrincipalCallback cpc = (CallerPrincipalCallback) callback;
+					name = cpc.getName();
+					principal = cpc.getPrincipal();
+					subject = cpc.getSubject();
+				} else if (callback instanceof GroupPrincipalCallback) {
+					GroupPrincipalCallback gpc = (GroupPrincipalCallback) callback;
+					groups = gpc.getGroups();
+				} else {
+					log.error(sm.getString("callbackHandlerImpl.jaspicCallbackMissing", callback.getClass().getName()));
+				}
+			}
 
+			// Create the GenericPrincipal
+			Principal gp = getPrincipal(principal, name, groups);
+			if (subject != null && gp != null) {
+				subject.getPrivateCredentials().add(gp);
+			}
+		}
+	}
 
-    @Override
-    public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+	private Principal getPrincipal(Principal principal, String name, String[] groups)
+	{
+		// If the Principal is cached in the session JASPIC may simply return it
+		if (principal instanceof GenericPrincipal) {
+			return principal;
+		}
+		if (name == null && principal != null) {
+			name = principal.getName();
+		}
+		if (name == null) {
+			return null;
+		}
+		List<String> roles;
+		if (groups == null || groups.length == 0) {
+			roles = Collections.emptyList();
+		} else {
+			roles = Arrays.asList(groups);
+		}
 
-        String name = null;
-        Principal principal = null;
-        Subject subject = null;
-        String[] groups = null;
-
-        if (callbacks != null) {
-            // Need to combine data from multiple callbacks so use this to hold
-            // the data
-            // Process the callbacks
-            for (Callback callback : callbacks) {
-                if (callback instanceof CallerPrincipalCallback) {
-                    CallerPrincipalCallback cpc = (CallerPrincipalCallback) callback;
-                    name = cpc.getName();
-                    principal = cpc.getPrincipal();
-                    subject = cpc.getSubject();
-                } else if (callback instanceof GroupPrincipalCallback) {
-                    GroupPrincipalCallback gpc = (GroupPrincipalCallback) callback;
-                    groups = gpc.getGroups();
-                } else {
-                    log.error(sm.getString("callbackHandlerImpl.jaspicCallbackMissing",
-                            callback.getClass().getName()));
-                }
-            }
-
-            // Create the GenericPrincipal
-            Principal gp = getPrincipal(principal, name, groups);
-            if (subject != null && gp != null) {
-                subject.getPrivateCredentials().add(gp);
-            }
-        }
-    }
-
-
-    private Principal getPrincipal(Principal principal, String name, String[] groups) {
-        // If the Principal is cached in the session JASPIC may simply return it
-        if (principal instanceof GenericPrincipal) {
-            return principal;
-        }
-        if (name == null && principal != null) {
-            name = principal.getName();
-        }
-        if (name == null) {
-            return null;
-        }
-        List<String> roles;
-        if (groups == null || groups.length == 0) {
-            roles = Collections.emptyList();
-        } else {
-            roles = Arrays.asList(groups);
-        }
-
-        return new GenericPrincipal(name, null, roles, principal);
-    }
+		return new GenericPrincipal(name, null, roles, principal);
+	}
 }

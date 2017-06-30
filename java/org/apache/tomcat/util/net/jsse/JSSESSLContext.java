@@ -32,39 +32,45 @@ import org.apache.tomcat.util.net.SSLContext;
 
 class JSSESSLContext implements SSLContext {
 
-    private javax.net.ssl.SSLContext context;
-    JSSESSLContext(String protocol) throws NoSuchAlgorithmException {
-        context = javax.net.ssl.SSLContext.getInstance(protocol);
-    }
+	private javax.net.ssl.SSLContext context;
 
-    @Override
-    public void init(KeyManager[] kms, TrustManager[] tms, SecureRandom sr)
-            throws KeyManagementException {
-        context.init(kms, tms, sr);
-    }
+	JSSESSLContext(String protocol) throws NoSuchAlgorithmException {
+		context = javax.net.ssl.SSLContext.getInstance(protocol);
+	}
 
-    @Override
-    public void destroy() {
-    }
+	@Override
+	public void init(KeyManager[] kms, TrustManager[] tms, SecureRandom sr) throws KeyManagementException
+	{
+		context.init(kms, tms, sr);
+	}
 
-    @Override
-    public SSLSessionContext getServerSessionContext() {
-        return context.getServerSessionContext();
-    }
+	@Override
+	public void destroy()
+	{
+	}
 
-    @Override
-    public SSLEngine createSSLEngine() {
-        return context.createSSLEngine();
-    }
+	@Override
+	public SSLSessionContext getServerSessionContext()
+	{
+		return context.getServerSessionContext();
+	}
 
-    @Override
-    public SSLServerSocketFactory getServerSocketFactory() {
-        return context.getServerSocketFactory();
-    }
+	@Override
+	public SSLEngine createSSLEngine()
+	{
+		return context.createSSLEngine();
+	}
 
-    @Override
-    public SSLParameters getSupportedSSLParameters() {
-        return context.getSupportedSSLParameters();
-    }
+	@Override
+	public SSLServerSocketFactory getServerSocketFactory()
+	{
+		return context.getServerSocketFactory();
+	}
+
+	@Override
+	public SSLParameters getSupportedSSLParameters()
+	{
+		return context.getSupportedSSLParameters();
+	}
 
 }

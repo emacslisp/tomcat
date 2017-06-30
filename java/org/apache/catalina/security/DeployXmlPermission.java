@@ -26,13 +26,13 @@ import java.security.BasicPermission;
  */
 public class DeployXmlPermission extends BasicPermission {
 
-    private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 1L;
 
-    public DeployXmlPermission(String name) {
-        super(name);
-    }
+	public DeployXmlPermission(String name) {
+		super(name);
+	}
 
-    public DeployXmlPermission(String name, String actions) {
-        super(name, actions);
-    }
+	public DeployXmlPermission(String name, String actions) {
+		super(name, actions);
+	}
 }

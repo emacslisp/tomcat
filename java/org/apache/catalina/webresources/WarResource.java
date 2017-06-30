@@ -28,18 +28,16 @@ import org.apache.tomcat.util.buf.UriUtil;
  */
 public class WarResource extends AbstractSingleArchiveResource {
 
-    private static final Log log = LogFactory.getLog(WarResource.class);
+	private static final Log log = LogFactory.getLog(WarResource.class);
 
+	public WarResource(AbstractArchiveResourceSet archiveResourceSet, String webAppPath, String baseUrl,
+			JarEntry jarEntry) {
+		super(archiveResourceSet, webAppPath, "war:" + baseUrl + UriUtil.getWarSeparator(), jarEntry, baseUrl);
+	}
 
-    public WarResource(AbstractArchiveResourceSet archiveResourceSet, String webAppPath,
-            String baseUrl, JarEntry jarEntry) {
-        super(archiveResourceSet, webAppPath, "war:" + baseUrl + UriUtil.getWarSeparator(),
-                jarEntry, baseUrl);
-    }
-
-
-    @Override
-    protected Log getLog() {
-        return log;
-    }
+	@Override
+	protected Log getLog()
+	{
+		return log;
+	}
 }

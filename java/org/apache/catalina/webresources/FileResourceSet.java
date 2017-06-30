@@ -31,146 +31,151 @@ import org.apache.catalina.util.ResourceSet;
  */
 public class FileResourceSet extends AbstractFileResourceSet {
 
-    /**
-     * A no argument constructor is required for this to work with the digester.
-     */
-    public FileResourceSet() {
-        super("/");
-    }
+	/**
+	 * A no argument constructor is required for this to work with the digester.
+	 */
+	public FileResourceSet() {
+		super("/");
+	}
 
-    /**
-     * Creates a new {@link org.apache.catalina.WebResourceSet} based on a
-     * file.
-     *
-     * @param root          The {@link WebResourceRoot} this new
-     *                          {@link org.apache.catalina.WebResourceSet} will
-     *                          be added to.
-     * @param webAppMount   The path within the web application at which this
-     *                          {@link org.apache.catalina.WebResourceSet} will
-     *                          be mounted. For example, to add a directory of
-     *                          JARs to a web application, the directory would
-     *                          be mounted at "WEB-INF/lib/"
-     * @param base          The absolute path to the file on the file system
-     *                          from which the resource will be served.
-     * @param internalPath  The path within this new {@link
-     *                          org.apache.catalina.WebResourceSet} where
-     *                          resources will be served from.
-     */
-    public FileResourceSet(WebResourceRoot root, String webAppMount,
-            String base, String internalPath) {
-        super(internalPath);
-        setRoot(root);
-        setWebAppMount(webAppMount);
-        setBase(base);
+	/**
+	 * Creates a new {@link org.apache.catalina.WebResourceSet} based on a file.
+	 *
+	 * @param root
+	 *            The {@link WebResourceRoot} this new
+	 *            {@link org.apache.catalina.WebResourceSet} will be added to.
+	 * @param webAppMount
+	 *            The path within the web application at which this
+	 *            {@link org.apache.catalina.WebResourceSet} will be mounted.
+	 *            For example, to add a directory of JARs to a web application,
+	 *            the directory would be mounted at "WEB-INF/lib/"
+	 * @param base
+	 *            The absolute path to the file on the file system from which
+	 *            the resource will be served.
+	 * @param internalPath
+	 *            The path within this new
+	 *            {@link org.apache.catalina.WebResourceSet} where resources
+	 *            will be served from.
+	 */
+	public FileResourceSet(WebResourceRoot root, String webAppMount, String base, String internalPath) {
+		super(internalPath);
+		setRoot(root);
+		setWebAppMount(webAppMount);
+		setBase(base);
 
-        if (getRoot().getState().isAvailable()) {
-            try {
-                start();
-            } catch (LifecycleException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-    }
+		if (getRoot().getState().isAvailable()) {
+			try {
+				start();
+			} catch (LifecycleException e) {
+				throw new IllegalStateException(e);
+			}
+		}
+	}
 
+	@Override
+	public WebResource getResource(String path)
+	{
+		checkPath(path);
 
-    @Override
-    public WebResource getResource(String path) {
-        checkPath(path);
+		String webAppMount = getWebAppMount();
+		WebResourceRoot root = getRoot();
+		if (path.equals(webAppMount)) {
+			File f = file("", true);
+			if (f == null) {
+				return new EmptyResource(root, path);
+			}
+			return new FileResource(root, path, f, isReadOnly(), null);
+		}
 
-        String webAppMount = getWebAppMount();
-        WebResourceRoot root = getRoot();
-        if (path.equals(webAppMount)) {
-            File f = file("", true);
-            if (f == null) {
-                return new EmptyResource(root, path);
-            }
-            return new FileResource(root, path, f, isReadOnly(), null);
-        }
+		if (path.charAt(path.length() - 1) != '/') {
+			path = path + '/';
+		}
 
-        if (path.charAt(path.length() - 1) != '/') {
-            path = path + '/';
-        }
+		if (webAppMount.startsWith(path)) {
+			String name = path.substring(0, path.length() - 1);
+			name = name.substring(name.lastIndexOf('/') + 1);
+			if (name.length() > 0) {
+				return new VirtualResource(root, path, name);
+			}
+		}
+		return new EmptyResource(root, path);
+	}
 
-        if (webAppMount.startsWith(path)) {
-            String name = path.substring(0, path.length() - 1);
-            name = name.substring(name.lastIndexOf('/') + 1);
-            if (name.length() > 0) {
-                return new VirtualResource(root, path, name);
-            }
-        }
-        return new EmptyResource(root, path);
-    }
+	@Override
+	public String[] list(String path)
+	{
+		checkPath(path);
 
-    @Override
-    public String[] list(String path) {
-        checkPath(path);
+		if (path.charAt(path.length() - 1) != '/') {
+			path = path + '/';
+		}
+		String webAppMount = getWebAppMount();
 
-        if (path.charAt(path.length() - 1) != '/') {
-            path = path + '/';
-        }
-        String webAppMount = getWebAppMount();
+		if (webAppMount.startsWith(path)) {
+			webAppMount = webAppMount.substring(path.length());
+			if (webAppMount.equals(getFileBase().getName())) {
+				return new String[] { getFileBase().getName() };
+			} else {
+				// Virtual directory
+				int i = webAppMount.indexOf('/');
+				if (i > 0) {
+					return new String[] { webAppMount.substring(0, i) };
+				}
+			}
+		}
 
-        if (webAppMount.startsWith(path)) {
-            webAppMount = webAppMount.substring(path.length());
-            if (webAppMount.equals(getFileBase().getName())) {
-                return new String[] {getFileBase().getName()};
-            } else {
-                // Virtual directory
-                int i = webAppMount.indexOf('/');
-                if (i > 0) {
-                    return new String[] {webAppMount.substring(0, i)};
-                }
-            }
-        }
+		return EMPTY_STRING_ARRAY;
+	}
 
-        return EMPTY_STRING_ARRAY;
-    }
+	@Override
+	public Set<String> listWebAppPaths(String path)
+	{
+		checkPath(path);
 
-    @Override
-    public Set<String> listWebAppPaths(String path) {
-        checkPath(path);
+		ResourceSet<String> result = new ResourceSet<>();
 
-        ResourceSet<String> result = new ResourceSet<>();
+		if (path.charAt(path.length() - 1) != '/') {
+			path = path + '/';
+		}
+		String webAppMount = getWebAppMount();
 
-        if (path.charAt(path.length() - 1) != '/') {
-            path = path + '/';
-        }
-        String webAppMount = getWebAppMount();
+		if (webAppMount.startsWith(path)) {
+			webAppMount = webAppMount.substring(path.length());
+			if (webAppMount.equals(getFileBase().getName())) {
+				result.add(path + getFileBase().getName());
+			} else {
+				// Virtual directory
+				int i = webAppMount.indexOf('/');
+				if (i > 0) {
+					result.add(path + webAppMount.substring(0, i + 1));
+				}
+			}
+		}
 
-        if (webAppMount.startsWith(path)) {
-            webAppMount = webAppMount.substring(path.length());
-            if (webAppMount.equals(getFileBase().getName())) {
-                result.add(path + getFileBase().getName());
-            } else {
-                // Virtual directory
-                int i = webAppMount.indexOf('/');
-                if (i > 0) {
-                    result.add(path + webAppMount.substring(0, i + 1));
-                }
-            }
-        }
+		result.setLocked(true);
+		return result;
+	}
 
-        result.setLocked(true);
-        return result;
-    }
+	@Override
+	public boolean mkdir(String path)
+	{
+		checkPath(path);
+		return false;
+	}
 
-    @Override
-    public boolean mkdir(String path) {
-        checkPath(path);
-        return false;
-    }
+	@Override
+	public boolean write(String path, InputStream is, boolean overwrite)
+	{
+		checkPath(path);
+		return false;
+	}
 
-    @Override
-    public boolean write(String path, InputStream is, boolean overwrite) {
-        checkPath(path);
-        return false;
-    }
-
-    @Override
-    protected void checkType(File file) {
-        if (file.isFile() == false) {
-            throw new IllegalArgumentException(sm.getString("fileResourceSet.notFile",
-                    getBase(), File.separator, getInternalPath()));
-        }
-    }
+	@Override
+	protected void checkType(File file)
+	{
+		if (file.isFile() == false) {
+			throw new IllegalArgumentException(
+					sm.getString("fileResourceSet.notFile", getBase(), File.separator, getInternalPath()));
+		}
+	}
 }

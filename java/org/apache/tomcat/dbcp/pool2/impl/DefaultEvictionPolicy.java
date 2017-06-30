@@ -23,31 +23,31 @@ import org.apache.tomcat.dbcp.pool2.PooledObject;
  * pools. Objects will be evicted if the following conditions are met:
  * <ul>
  * <li>the object has been idle longer than
- *     {@link GenericObjectPool#getMinEvictableIdleTimeMillis()} /
- *     {@link GenericKeyedObjectPool#getMinEvictableIdleTimeMillis()}</li>
+ * {@link GenericObjectPool#getMinEvictableIdleTimeMillis()} /
+ * {@link GenericKeyedObjectPool#getMinEvictableIdleTimeMillis()}</li>
  * <li>there are more than {@link GenericObjectPool#getMinIdle()} /
- *     {@link GenericKeyedObjectPoolConfig#getMinIdlePerKey()} idle objects in
- *     the pool and the object has been idle for longer than
- *     {@link GenericObjectPool#getSoftMinEvictableIdleTimeMillis()} /
- *     {@link GenericKeyedObjectPool#getSoftMinEvictableIdleTimeMillis()}
+ * {@link GenericKeyedObjectPoolConfig#getMinIdlePerKey()} idle objects in the
+ * pool and the object has been idle for longer than
+ * {@link GenericObjectPool#getSoftMinEvictableIdleTimeMillis()} /
+ * {@link GenericKeyedObjectPool#getSoftMinEvictableIdleTimeMillis()}
  * </ul>
  * This class is immutable and thread-safe.
  *
- * @param <T> the type of objects in the pool
+ * @param <T>
+ *            the type of objects in the pool
  *
  * @since 2.0
  */
 public class DefaultEvictionPolicy<T> implements EvictionPolicy<T> {
 
-    @Override
-    public boolean evict(final EvictionConfig config, final PooledObject<T> underTest,
-            final int idleCount) {
+	@Override
+	public boolean evict(final EvictionConfig config, final PooledObject<T> underTest, final int idleCount)
+	{
 
-        if ((config.getIdleSoftEvictTime() < underTest.getIdleTimeMillis() &&
-                config.getMinIdle() < idleCount) ||
-                config.getIdleEvictTime() < underTest.getIdleTimeMillis()) {
-            return true;
-        }
-        return false;
-    }
+		if ((config.getIdleSoftEvictTime() < underTest.getIdleTimeMillis() && config.getMinIdle() < idleCount)
+				|| config.getIdleEvictTime() < underTest.getIdleTimeMillis()) {
+			return true;
+		}
+		return false;
+	}
 }

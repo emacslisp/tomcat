@@ -25,144 +25,153 @@ import java.util.List;
 import org.apache.tomcat.dbcp.pool2.TrackedUse;
 
 /**
- * Tracks db connection usage for recovering and reporting
- * abandoned db connections.
+ * Tracks db connection usage for recovering and reporting abandoned db
+ * connections.
  *
- * The JDBC Connection, Statement, and ResultSet classes
- * extend this class.
+ * The JDBC Connection, Statement, and ResultSet classes extend this class.
  *
  * @author Glenn L. Nielsen
  * @since 2.0
  */
 public class AbandonedTrace implements TrackedUse {
 
-    /** A list of objects created by children of this object */
-    private final List<WeakReference<AbandonedTrace>> traceList = new ArrayList<>();
-    /** Last time this connection was used */
-    private volatile long lastUsed = 0;
+	/** A list of objects created by children of this object */
+	private final List<WeakReference<AbandonedTrace>> traceList = new ArrayList<>();
+	/** Last time this connection was used */
+	private volatile long lastUsed = 0;
 
-    /**
-     * Create a new AbandonedTrace without config and
-     * without doing abandoned tracing.
-     */
-    public AbandonedTrace() {
-        init(null);
-    }
+	/**
+	 * Create a new AbandonedTrace without config and without doing abandoned
+	 * tracing.
+	 */
+	public AbandonedTrace() {
+		init(null);
+	}
 
-    /**
-     * Construct a new AbandonedTrace with a parent object.
-     *
-     * @param parent AbandonedTrace parent object
-     */
-    public AbandonedTrace(final AbandonedTrace parent) {
-        init(parent);
-    }
+	/**
+	 * Construct a new AbandonedTrace with a parent object.
+	 *
+	 * @param parent
+	 *            AbandonedTrace parent object
+	 */
+	public AbandonedTrace(final AbandonedTrace parent) {
+		init(parent);
+	}
 
-    /**
-     * Initialize abandoned tracing for this object.
-     *
-     * @param parent AbandonedTrace parent object
-     */
-    private void init(final AbandonedTrace parent) {
-        if (parent != null) {
-            parent.addTrace(this);
-        }
-    }
+	/**
+	 * Initialize abandoned tracing for this object.
+	 *
+	 * @param parent
+	 *            AbandonedTrace parent object
+	 */
+	private void init(final AbandonedTrace parent)
+	{
+		if (parent != null) {
+			parent.addTrace(this);
+		}
+	}
 
-    /**
-     * Get the last time this object was used in ms.
-     *
-     * @return long time in ms
-     */
-    @Override
-    public long getLastUsed() {
-        return lastUsed;
-    }
+	/**
+	 * Get the last time this object was used in ms.
+	 *
+	 * @return long time in ms
+	 */
+	@Override
+	public long getLastUsed()
+	{
+		return lastUsed;
+	}
 
-    /**
-     * Set the time this object was last used to the
-     * current time in ms.
-     */
-    protected void setLastUsed() {
-        lastUsed = System.currentTimeMillis();
-    }
+	/**
+	 * Set the time this object was last used to the current time in ms.
+	 */
+	protected void setLastUsed()
+	{
+		lastUsed = System.currentTimeMillis();
+	}
 
-    /**
-     * Set the time in ms this object was last used.
-     *
-     * @param time time in ms
-     */
-    protected void setLastUsed(final long time) {
-        lastUsed = time;
-    }
+	/**
+	 * Set the time in ms this object was last used.
+	 *
+	 * @param time
+	 *            time in ms
+	 */
+	protected void setLastUsed(final long time)
+	{
+		lastUsed = time;
+	}
 
-    /**
-     * Add an object to the list of objects being
-     * traced.
-     *
-     * @param trace AbandonedTrace object to add
-     */
-    protected void addTrace(final AbandonedTrace trace) {
-        synchronized (this.traceList) {
-            this.traceList.add(new WeakReference<>(trace));
-        }
-        setLastUsed();
-    }
+	/**
+	 * Add an object to the list of objects being traced.
+	 *
+	 * @param trace
+	 *            AbandonedTrace object to add
+	 */
+	protected void addTrace(final AbandonedTrace trace)
+	{
+		synchronized (this.traceList) {
+			this.traceList.add(new WeakReference<>(trace));
+		}
+		setLastUsed();
+	}
 
-    /**
-     * Clear the list of objects being traced by this
-     * object.
-     */
-    protected void clearTrace() {
-        synchronized(this.traceList) {
-            this.traceList.clear();
-        }
-    }
+	/**
+	 * Clear the list of objects being traced by this object.
+	 */
+	protected void clearTrace()
+	{
+		synchronized (this.traceList) {
+			this.traceList.clear();
+		}
+	}
 
-    /**
-     * Get a list of objects being traced by this object.
-     *
-     * @return List of objects
-     */
-    protected List<AbandonedTrace> getTrace() {
-        final int size = traceList.size();
-        if (size == 0) {
-            return Collections.emptyList();
-        }
-        final ArrayList<AbandonedTrace> result = new ArrayList<>(size);
-        synchronized (this.traceList) {
-            final Iterator<WeakReference<AbandonedTrace>> iter = traceList.iterator();
-            while (iter.hasNext()) {
-                final WeakReference<AbandonedTrace> ref = iter.next();
-                if (ref.get() == null) {
-                    // Clean-up since we are here anyway
-                    iter.remove();
-                } else {
-                    result.add(ref.get());
-                }
-            }
-        }
-        return result;
-    }
+	/**
+	 * Get a list of objects being traced by this object.
+	 *
+	 * @return List of objects
+	 */
+	protected List<AbandonedTrace> getTrace()
+	{
+		final int size = traceList.size();
+		if (size == 0) {
+			return Collections.emptyList();
+		}
+		final ArrayList<AbandonedTrace> result = new ArrayList<>(size);
+		synchronized (this.traceList) {
+			final Iterator<WeakReference<AbandonedTrace>> iter = traceList.iterator();
+			while (iter.hasNext()) {
+				final WeakReference<AbandonedTrace> ref = iter.next();
+				if (ref.get() == null) {
+					// Clean-up since we are here anyway
+					iter.remove();
+				} else {
+					result.add(ref.get());
+				}
+			}
+		}
+		return result;
+	}
 
-    /**
-     * Remove a child object this object is tracing.
-     *
-     * @param trace AbandonedTrace object to remove
-     */
-    protected void removeTrace(final AbandonedTrace trace) {
-        synchronized(this.traceList) {
-            final Iterator<WeakReference<AbandonedTrace>> iter = traceList.iterator();
-            while (iter.hasNext()) {
-                final WeakReference<AbandonedTrace> ref = iter.next();
-                if (trace.equals(ref.get())) {
-                    iter.remove();
-                    break;
-                } else if (ref.get() == null) {
-                    // Clean-up since we are here anyway
-                    iter.remove();
-                }
-            }
-        }
-    }
+	/**
+	 * Remove a child object this object is tracing.
+	 *
+	 * @param trace
+	 *            AbandonedTrace object to remove
+	 */
+	protected void removeTrace(final AbandonedTrace trace)
+	{
+		synchronized (this.traceList) {
+			final Iterator<WeakReference<AbandonedTrace>> iter = traceList.iterator();
+			while (iter.hasNext()) {
+				final WeakReference<AbandonedTrace> ref = iter.next();
+				if (trace.equals(ref.get())) {
+					iter.remove();
+					break;
+				} else if (ref.get() == null) {
+					// Clean-up since we are here anyway
+					iter.remove();
+				}
+			}
+		}
+	}
 }

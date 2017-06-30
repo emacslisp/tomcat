@@ -26,37 +26,36 @@ import org.apache.catalina.Manager;
  */
 public class ToStringUtil {
 
-    private ToStringUtil() {
-        // Utility class. Hide default constructor
-    }
+	private ToStringUtil() {
+		// Utility class. Hide default constructor
+	}
 
+	public static final String toString(Contained contained)
+	{
+		return toString(contained, contained.getContainer());
+	}
 
-    public static final String toString(Contained contained) {
-        return toString(contained, contained.getContainer());
-    }
+	public static final String toString(Object obj, Container container)
+	{
+		return containedToString(obj, container, "Container");
+	}
 
+	public static final String toString(Object obj, Manager manager)
+	{
+		return containedToString(obj, manager, "Manager");
+	}
 
-    public static final String toString(Object obj, Container container) {
-        return containedToString(obj, container, "Container");
-    }
-
-
-    public static final String toString(Object obj, Manager manager) {
-        return containedToString(obj, manager, "Manager");
-    }
-
-
-    private static final String containedToString(Object contained, Object container,
-            String containerTypeName) {
-        StringBuilder sb = new StringBuilder(contained.getClass().getSimpleName());
-        sb.append('[');
-        if (container == null) {
-            sb.append(containerTypeName);
-            sb.append(" is null");
-        } else {
-            sb.append(container.toString());
-        }
-        sb.append(']');
-        return sb.toString();
-    }
+	private static final String containedToString(Object contained, Object container, String containerTypeName)
+	{
+		StringBuilder sb = new StringBuilder(contained.getClass().getSimpleName());
+		sb.append('[');
+		if (container == null) {
+			sb.append(containerTypeName);
+			sb.append(" is null");
+		} else {
+			sb.append(container.toString());
+		}
+		sb.append(']');
+		return sb.toString();
+	}
 }

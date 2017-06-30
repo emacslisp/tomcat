@@ -32,140 +32,134 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public class CoyoteOutputStream extends ServletOutputStream {
 
-    protected static final StringManager sm = StringManager.getManager(CoyoteOutputStream.class);
+	protected static final StringManager sm = StringManager.getManager(CoyoteOutputStream.class);
 
+	// ----------------------------------------------------- Instance Variables
 
-    // ----------------------------------------------------- Instance Variables
+	protected OutputBuffer ob;
 
-    protected OutputBuffer ob;
+	// ----------------------------------------------------------- Constructors
 
+	protected CoyoteOutputStream(OutputBuffer ob) {
+		this.ob = ob;
+	}
 
-    // ----------------------------------------------------------- Constructors
+	// --------------------------------------------------------- Public Methods
 
+	/**
+	 * Prevent cloning the facade.
+	 */
+	@Override
+	protected Object clone() throws CloneNotSupportedException
+	{
+		throw new CloneNotSupportedException();
+	}
 
-    protected CoyoteOutputStream(OutputBuffer ob) {
-        this.ob = ob;
-    }
+	// -------------------------------------------------------- Package Methods
 
+	/**
+	 * Clear facade.
+	 */
+	void clear()
+	{
+		ob = null;
+	}
 
-    // --------------------------------------------------------- Public Methods
+	// --------------------------------------------------- OutputStream Methods
 
+	@Override
+	public void write(int i) throws IOException
+	{
+		boolean nonBlocking = checkNonBlockingWrite();
+		ob.writeByte(i);
+		if (nonBlocking) {
+			checkRegisterForWrite();
+		}
+	}
 
-    /**
-     * Prevent cloning the facade.
-     */
-    @Override
-    protected Object clone() throws CloneNotSupportedException {
-        throw new CloneNotSupportedException();
-    }
+	@Override
+	public void write(byte[] b) throws IOException
+	{
+		write(b, 0, b.length);
+	}
 
+	@Override
+	public void write(byte[] b, int off, int len) throws IOException
+	{
+		boolean nonBlocking = checkNonBlockingWrite();
+		ob.write(b, off, len);
+		if (nonBlocking) {
+			checkRegisterForWrite();
+		}
+	}
 
-    // -------------------------------------------------------- Package Methods
+	public void write(ByteBuffer from) throws IOException
+	{
+		boolean nonBlocking = checkNonBlockingWrite();
+		ob.write(from);
+		if (nonBlocking) {
+			checkRegisterForWrite();
+		}
+	}
 
+	/**
+	 * Will send the buffer to the client.
+	 */
+	@Override
+	public void flush() throws IOException
+	{
+		boolean nonBlocking = checkNonBlockingWrite();
+		ob.flush();
+		if (nonBlocking) {
+			checkRegisterForWrite();
+		}
+	}
 
-    /**
-     * Clear facade.
-     */
-    void clear() {
-        ob = null;
-    }
+	/**
+	 * Checks for concurrent writes which are not permitted. This object has no
+	 * state information so the call chain is
+	 * CoyoteOutputStream->OutputBuffer->CoyoteResponse.
+	 *
+	 * @return <code>true</code> if this OutputStream is currently in
+	 *         non-blocking mode.
+	 */
+	private boolean checkNonBlockingWrite()
+	{
+		boolean nonBlocking = !ob.isBlocking();
+		if (nonBlocking && !ob.isReady()) {
+			throw new IllegalStateException(sm.getString("coyoteOutputStream.nbNotready"));
+		}
+		return nonBlocking;
+	}
 
+	/**
+	 * Checks to see if there is data left in the Coyote output buffers (NOT the
+	 * servlet output buffer) and if so registers the associated socket for
+	 * write so the buffers will be emptied. The container will take care of
+	 * this. As far as the app is concerned, there is a non-blocking write in
+	 * progress. It doesn't have visibility of whether the data is buffered in
+	 * the socket buffer or the Coyote buffers.
+	 */
+	private void checkRegisterForWrite()
+	{
+		ob.checkRegisterForWrite();
+	}
 
-    // --------------------------------------------------- OutputStream Methods
+	@Override
+	public void close() throws IOException
+	{
+		ob.close();
+	}
 
+	@Override
+	public boolean isReady()
+	{
+		return ob.isReady();
+	}
 
-    @Override
-    public void write(int i) throws IOException {
-        boolean nonBlocking = checkNonBlockingWrite();
-        ob.writeByte(i);
-        if (nonBlocking) {
-            checkRegisterForWrite();
-        }
-    }
-
-
-    @Override
-    public void write(byte[] b) throws IOException {
-        write(b, 0, b.length);
-    }
-
-
-    @Override
-    public void write(byte[] b, int off, int len) throws IOException {
-        boolean nonBlocking = checkNonBlockingWrite();
-        ob.write(b, off, len);
-        if (nonBlocking) {
-            checkRegisterForWrite();
-        }
-    }
-
-
-    public void write(ByteBuffer from) throws IOException {
-        boolean nonBlocking = checkNonBlockingWrite();
-        ob.write(from);
-        if (nonBlocking) {
-            checkRegisterForWrite();
-        }
-    }
-
-
-    /**
-     * Will send the buffer to the client.
-     */
-    @Override
-    public void flush() throws IOException {
-        boolean nonBlocking = checkNonBlockingWrite();
-        ob.flush();
-        if (nonBlocking) {
-            checkRegisterForWrite();
-        }
-    }
-
-
-    /**
-     * Checks for concurrent writes which are not permitted. This object has no
-     * state information so the call chain is
-     * CoyoteOutputStream->OutputBuffer->CoyoteResponse.
-     *
-     * @return <code>true</code> if this OutputStream is currently in
-     *         non-blocking mode.
-     */
-    private boolean checkNonBlockingWrite() {
-        boolean nonBlocking = !ob.isBlocking();
-        if (nonBlocking && !ob.isReady()) {
-            throw new IllegalStateException(sm.getString("coyoteOutputStream.nbNotready"));
-        }
-        return nonBlocking;
-    }
-
-
-    /**
-     * Checks to see if there is data left in the Coyote output buffers (NOT the
-     * servlet output buffer) and if so registers the associated socket for
-     * write so the buffers will be emptied. The container will take care of
-     * this. As far as the app is concerned, there is a non-blocking write in
-     * progress. It doesn't have visibility of whether the data is buffered in
-     * the socket buffer or the Coyote buffers.
-     */
-    private void checkRegisterForWrite() {
-        ob.checkRegisterForWrite();
-    }
-
-
-    @Override
-    public void close() throws IOException {
-        ob.close();
-    }
-
-    @Override
-    public boolean isReady() {
-        return ob.isReady();
-    }
-
-
-    @Override
-    public void setWriteListener(WriteListener listener) {
-        ob.setWriteListener(listener);
-    }
+	@Override
+	public void setWriteListener(WriteListener listener)
+	{
+		ob.setWriteListener(listener);
+	}
 }
-

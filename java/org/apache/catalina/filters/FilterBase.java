@@ -35,37 +35,37 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public abstract class FilterBase implements Filter {
 
-    protected static final StringManager sm = StringManager.getManager(FilterBase.class);
+	protected static final StringManager sm = StringManager.getManager(FilterBase.class);
 
-    protected abstract Log getLogger();
+	protected abstract Log getLogger();
 
-    @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-        Enumeration<String> paramNames = filterConfig.getInitParameterNames();
-        while (paramNames.hasMoreElements()) {
-            String paramName = paramNames.nextElement();
-            if (!IntrospectionUtils.setProperty(this, paramName,
-                    filterConfig.getInitParameter(paramName))) {
-                String msg = sm.getString("filterbase.noSuchProperty",
-                        paramName, this.getClass().getName());
-                if (isConfigProblemFatal()) {
-                    throw new ServletException(msg);
-                } else {
-                    getLogger().warn(msg);
-                }
-            }
-        }
-    }
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException
+	{
+		Enumeration<String> paramNames = filterConfig.getInitParameterNames();
+		while (paramNames.hasMoreElements()) {
+			String paramName = paramNames.nextElement();
+			if (!IntrospectionUtils.setProperty(this, paramName, filterConfig.getInitParameter(paramName))) {
+				String msg = sm.getString("filterbase.noSuchProperty", paramName, this.getClass().getName());
+				if (isConfigProblemFatal()) {
+					throw new ServletException(msg);
+				} else {
+					getLogger().warn(msg);
+				}
+			}
+		}
+	}
 
-    /**
-     * Determines if an exception when calling a setter or an unknown
-     * configuration attribute triggers the failure of the this filter which in
-     * turn will prevent the web application from starting.
-     *
-     * @return <code>true</code> if a problem should trigger the failure of this
-     *         filter, else <code>false</code>
-     */
-    protected boolean isConfigProblemFatal() {
-        return false;
-    }
+	/**
+	 * Determines if an exception when calling a setter or an unknown
+	 * configuration attribute triggers the failure of the this filter which in
+	 * turn will prevent the web application from starting.
+	 *
+	 * @return <code>true</code> if a problem should trigger the failure of this
+	 *         filter, else <code>false</code>
+	 */
+	protected boolean isConfigProblemFatal()
+	{
+		return false;
+	}
 }

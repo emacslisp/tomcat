@@ -27,7 +27,6 @@ import java.util.Properties;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
-
 /**
  * Utility class to read the bootstrap Catalina configuration.
  *
@@ -35,110 +34,109 @@ import org.apache.juli.logging.LogFactory;
  */
 public class CatalinaProperties {
 
-    private static final Log log = LogFactory.getLog(CatalinaProperties.class);
+	private static final Log log = LogFactory.getLog(CatalinaProperties.class);
 
-    private static Properties properties = null;
+	private static Properties properties = null;
 
+	static {
+		loadProperties();
+	}
 
-    static {
-        loadProperties();
-    }
+	/**
+	 * @param name
+	 *            The property name
+	 * @return specified property value
+	 */
+	public static String getProperty(String name)
+	{
+		return properties.getProperty(name);
+	}
 
+	/**
+	 * Load properties.
+	 */
+	private static void loadProperties()
+	{
 
-    /**
-     * @param name The property name
-     * @return specified property value
-     */
-    public static String getProperty(String name) {
-        return properties.getProperty(name);
-    }
+		InputStream is = null;
+		String fileName = "catalina.properties";
 
+		try {
+			String configUrl = System.getProperty("catalina.config");
+			if (configUrl != null) {
+				if (configUrl.indexOf('/') == -1) {
+					// No '/'. Must be a file name rather than a URL
+					fileName = configUrl;
+				} else {
+					is = (new URL(configUrl)).openStream();
+				}
+			}
+		} catch (Throwable t) {
+			handleThrowable(t);
+		}
 
-    /**
-     * Load properties.
-     */
-    private static void loadProperties() {
+		if (is == null) {
+			try {
+				File home = new File(Bootstrap.getCatalinaBase());
+				File conf = new File(home, "conf");
+				File propsFile = new File(conf, fileName);
+				is = new FileInputStream(propsFile);
+			} catch (Throwable t) {
+				handleThrowable(t);
+			}
+		}
 
-        InputStream is = null;
-        String fileName = "catalina.properties";
+		if (is == null) {
+			try {
+				is = CatalinaProperties.class.getResourceAsStream("/org/apache/catalina/startup/catalina.properties");
+			} catch (Throwable t) {
+				handleThrowable(t);
+			}
+		}
 
-        try {
-            String configUrl = System.getProperty("catalina.config");
-            if (configUrl != null) {
-                if (configUrl.indexOf('/') == -1) {
-                    // No '/'. Must be a file name rather than a URL
-                    fileName = configUrl;
-                } else {
-                    is = (new URL(configUrl)).openStream();
-                }
-            }
-        } catch (Throwable t) {
-            handleThrowable(t);
-        }
+		if (is != null) {
+			try {
+				properties = new Properties();
+				properties.load(is);
+			} catch (Throwable t) {
+				handleThrowable(t);
+				log.warn(t);
+			} finally {
+				try {
+					is.close();
+				} catch (IOException ioe) {
+					log.warn("Could not close catalina properties file", ioe);
+				}
+			}
+		}
 
-        if (is == null) {
-            try {
-                File home = new File(Bootstrap.getCatalinaBase());
-                File conf = new File(home, "conf");
-                File propsFile = new File(conf, fileName);
-                is = new FileInputStream(propsFile);
-            } catch (Throwable t) {
-                handleThrowable(t);
-            }
-        }
+		if ((is == null)) {
+			// Do something
+			log.warn("Failed to load catalina properties file");
+			// That's fine - we have reasonable defaults.
+			properties = new Properties();
+		}
 
-        if (is == null) {
-            try {
-                is = CatalinaProperties.class.getResourceAsStream
-                    ("/org/apache/catalina/startup/catalina.properties");
-            } catch (Throwable t) {
-                handleThrowable(t);
-            }
-        }
+		// Register the properties as system properties
+		Enumeration<?> enumeration = properties.propertyNames();
+		while (enumeration.hasMoreElements()) {
+			String name = (String) enumeration.nextElement();
+			String value = properties.getProperty(name);
+			if (value != null) {
+				System.setProperty(name, value);
+			}
+		}
+	}
 
-        if (is != null) {
-            try {
-                properties = new Properties();
-                properties.load(is);
-            } catch (Throwable t) {
-                handleThrowable(t);
-                log.warn(t);
-            } finally {
-                try {
-                    is.close();
-                } catch (IOException ioe) {
-                    log.warn("Could not close catalina properties file", ioe);
-                }
-            }
-        }
-
-        if ((is == null)) {
-            // Do something
-            log.warn("Failed to load catalina properties file");
-            // That's fine - we have reasonable defaults.
-            properties = new Properties();
-        }
-
-        // Register the properties as system properties
-        Enumeration<?> enumeration = properties.propertyNames();
-        while (enumeration.hasMoreElements()) {
-            String name = (String) enumeration.nextElement();
-            String value = properties.getProperty(name);
-            if (value != null) {
-                System.setProperty(name, value);
-            }
-        }
-    }
-
-
-    // Copied from ExceptionUtils since that class is not visible during start
-    private static void handleThrowable(Throwable t) {
-        if (t instanceof ThreadDeath) {
-            throw (ThreadDeath) t;
-        }
-        if (t instanceof VirtualMachineError) {
-            throw (VirtualMachineError) t;
-        }
-        // All other instances of Throwable will be silently swallowed
-    }
+	// Copied from ExceptionUtils since that class is not visible during start
+	private static void handleThrowable(Throwable t)
+	{
+		if (t instanceof ThreadDeath) {
+			throw (ThreadDeath) t;
+		}
+		if (t instanceof VirtualMachineError) {
+			throw (VirtualMachineError) t;
+		}
+		// All other instances of Throwable will be silently swallowed
+	}
 }

@@ -34,8 +34,7 @@ import java.lang.annotation.Target;
  * {@link javax.servlet.ServletContextListener},
  * {@link javax.servlet.ServletRequestAttributeListener},
  * {@link javax.servlet.ServletRequestListener} or
- * {@link javax.servlet.http.HttpSessionIdListener}
- * <br>
+ * {@link javax.servlet.http.HttpSessionIdListener} <br>
  *
  * E.g. <code>@WebListener</code><br>
  * <code>public TestListener implements ServletContextListener {</code><br>
@@ -47,8 +46,8 @@ import java.lang.annotation.Target;
 @Documented
 public @interface WebListener {
 
-    /**
-     * @return description of the listener, if present
-     */
-    String value() default "";
+	/**
+	 * @return description of the listener, if present
+	 */
+	String value() default "";
 }

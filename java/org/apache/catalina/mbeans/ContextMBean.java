@@ -27,146 +27,162 @@ import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
 
 public class ContextMBean extends BaseCatalinaMBean<Context> {
 
-     /**
-     * Return the set of application parameters for this application.
-     * @return a string array with a representation of each parameter
-     * @throws MBeanException propagated from the managed resource access
-     */
-    public String[] findApplicationParameters() throws MBeanException {
+	/**
+	 * Return the set of application parameters for this application.
+	 * 
+	 * @return a string array with a representation of each parameter
+	 * @throws MBeanException
+	 *             propagated from the managed resource access
+	 */
+	public String[] findApplicationParameters() throws MBeanException
+	{
 
-        Context context = doGetManagedResource();
+		Context context = doGetManagedResource();
 
-        ApplicationParameter[] params = context.findApplicationParameters();
-        String[] stringParams = new String[params.length];
-        for (int counter = 0; counter < params.length; counter++) {
-           stringParams[counter] = params[counter].toString();
-        }
+		ApplicationParameter[] params = context.findApplicationParameters();
+		String[] stringParams = new String[params.length];
+		for (int counter = 0; counter < params.length; counter++) {
+			stringParams[counter] = params[counter].toString();
+		}
 
-        return stringParams;
-    }
+		return stringParams;
+	}
 
+	/**
+	 * Return the security constraints for this web application. If there are
+	 * none, a zero-length array is returned.
+	 * 
+	 * @return a string array with a representation of each security constraint
+	 * @throws MBeanException
+	 *             propagated from the managed resource access
+	 */
+	public String[] findConstraints() throws MBeanException
+	{
 
-    /**
-     * Return the security constraints for this web application.
-     * If there are none, a zero-length array is returned.
-     * @return a string array with a representation of each
-     *  security constraint
-     * @throws MBeanException propagated from the managed resource access
-     */
-    public String[] findConstraints() throws MBeanException {
+		Context context = doGetManagedResource();
 
-        Context context = doGetManagedResource();
+		SecurityConstraint[] constraints = context.findConstraints();
+		String[] stringConstraints = new String[constraints.length];
+		for (int counter = 0; counter < constraints.length; counter++) {
+			stringConstraints[counter] = constraints[counter].toString();
+		}
 
-        SecurityConstraint[] constraints = context.findConstraints();
-        String[] stringConstraints = new String[constraints.length];
-        for (int counter = 0; counter < constraints.length; counter++) {
-            stringConstraints[counter] = constraints[counter].toString();
-        }
+		return stringConstraints;
+	}
 
-        return stringConstraints;
-    }
+	/**
+	 * Return the error page entry for the specified HTTP error code, if any;
+	 * otherwise return <code>null</code>.
+	 *
+	 * @param errorCode
+	 *            Error code to look up
+	 * @return a string representation of the error page
+	 * @throws MBeanException
+	 *             propagated from the managed resource access
+	 */
+	public String findErrorPage(int errorCode) throws MBeanException
+	{
+		Context context = doGetManagedResource();
+		return context.findErrorPage(errorCode).toString();
+	}
 
+	/**
+	 * Return the error page entry for the specified Java exception type, if
+	 * any; otherwise return <code>null</code>.
+	 *
+	 * @param exceptionType
+	 *            Exception type to look up
+	 * @return a string representation of the error page
+	 * @throws MBeanException
+	 *             propagated from the managed resource access
+	 */
+	public String findErrorPage(String exceptionType) throws MBeanException
+	{
+		Context context = doGetManagedResource();
+		return context.findErrorPage(exceptionType).toString();
+	}
 
-    /**
-     * Return the error page entry for the specified HTTP error code,
-     * if any; otherwise return <code>null</code>.
-     *
-     * @param errorCode Error code to look up
-     * @return a string representation of the error page
-     * @throws MBeanException propagated from the managed resource access
-     */
-    public String findErrorPage(int errorCode) throws MBeanException {
-        Context context = doGetManagedResource();
-        return context.findErrorPage(errorCode).toString();
-    }
+	/**
+	 * Return the set of defined error pages for all specified error codes and
+	 * exception types.
+	 * 
+	 * @return a string array with a representation of each error page
+	 * @throws MBeanException
+	 *             propagated from the managed resource access
+	 */
+	public String[] findErrorPages() throws MBeanException
+	{
 
+		Context context = doGetManagedResource();
 
-    /**
-     * Return the error page entry for the specified Java exception type,
-     * if any; otherwise return <code>null</code>.
-     *
-     * @param exceptionType Exception type to look up
-     * @return a string representation of the error page
-     * @throws MBeanException propagated from the managed resource access
-     */
-    public String findErrorPage(String exceptionType) throws MBeanException {
-        Context context = doGetManagedResource();
-        return context.findErrorPage(exceptionType).toString();
-    }
+		ErrorPage[] pages = context.findErrorPages();
+		String[] stringPages = new String[pages.length];
+		for (int counter = 0; counter < pages.length; counter++) {
+			stringPages[counter] = pages[counter].toString();
+		}
 
+		return stringPages;
+	}
 
-    /**
-     * Return the set of defined error pages for all specified error codes
-     * and exception types.
-     * @return a string array with a representation of each error page
-     * @throws MBeanException propagated from the managed resource access
-     */
-    public String[] findErrorPages() throws MBeanException {
+	/**
+	 * Return the filter definition for the specified filter name, if any;
+	 * otherwise return <code>null</code>.
+	 *
+	 * @param name
+	 *            Filter name to look up
+	 * @return a string representation of the filter definition
+	 * @throws MBeanException
+	 *             propagated from the managed resource access
+	 */
+	public String findFilterDef(String name) throws MBeanException
+	{
 
-        Context context = doGetManagedResource();
+		Context context = doGetManagedResource();
 
-        ErrorPage[] pages = context.findErrorPages();
-        String[] stringPages = new String[pages.length];
-        for (int counter = 0; counter < pages.length; counter++) {
-            stringPages[counter] = pages[counter].toString();
-        }
+		FilterDef filterDef = context.findFilterDef(name);
+		return filterDef.toString();
+	}
 
-        return stringPages;
-    }
+	/**
+	 * Return the set of defined filters for this Context.
+	 * 
+	 * @return a string array with a representation of all the filter
+	 *         definitions
+	 * @throws MBeanException
+	 *             propagated from the managed resource access
+	 */
+	public String[] findFilterDefs() throws MBeanException
+	{
 
+		Context context = doGetManagedResource();
 
-    /**
-     * Return the filter definition for the specified filter name, if any;
-     * otherwise return <code>null</code>.
-     *
-     * @param name Filter name to look up
-     * @return a string representation of the filter definition
-     * @throws MBeanException propagated from the managed resource access
-     */
-    public String findFilterDef(String name) throws MBeanException {
+		FilterDef[] filterDefs = context.findFilterDefs();
+		String[] stringFilters = new String[filterDefs.length];
+		for (int counter = 0; counter < filterDefs.length; counter++) {
+			stringFilters[counter] = filterDefs[counter].toString();
+		}
 
-        Context context = doGetManagedResource();
+		return stringFilters;
+	}
 
-        FilterDef filterDef = context.findFilterDef(name);
-        return filterDef.toString();
-    }
+	/**
+	 * Return the set of filter mappings for this Context.
+	 * 
+	 * @return a string array with a representation of all the filter mappings
+	 * @throws MBeanException
+	 *             propagated from the managed resource access
+	 */
+	public String[] findFilterMaps() throws MBeanException
+	{
 
+		Context context = doGetManagedResource();
 
-    /**
-     * Return the set of defined filters for this Context.
-     * @return a string array with a representation of all
-     *  the filter definitions
-     * @throws MBeanException propagated from the managed resource access
-     */
-    public String[] findFilterDefs() throws MBeanException {
+		FilterMap[] maps = context.findFilterMaps();
+		String[] stringMaps = new String[maps.length];
+		for (int counter = 0; counter < maps.length; counter++) {
+			stringMaps[counter] = maps[counter].toString();
+		}
 
-        Context context = doGetManagedResource();
-
-        FilterDef[] filterDefs = context.findFilterDefs();
-        String[] stringFilters = new String[filterDefs.length];
-        for (int counter = 0; counter < filterDefs.length; counter++) {
-            stringFilters[counter] = filterDefs[counter].toString();
-        }
-
-        return stringFilters;
-    }
-
-
-    /**
-     * Return the set of filter mappings for this Context.
-     * @return a string array with a representation of all the filter mappings
-     * @throws MBeanException propagated from the managed resource access
-     */
-    public String[] findFilterMaps() throws MBeanException {
-
-        Context context = doGetManagedResource();
-
-        FilterMap[] maps = context.findFilterMaps();
-        String[] stringMaps = new String[maps.length];
-        for (int counter = 0; counter < maps.length; counter++) {
-            stringMaps[counter] = maps[counter].toString();
-        }
-
-        return stringMaps;
-    }
+		return stringMaps;
+	}
 }

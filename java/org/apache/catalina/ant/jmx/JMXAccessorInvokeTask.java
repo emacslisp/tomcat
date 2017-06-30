@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-
 package org.apache.catalina.ant.jmx;
-
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,14 +25,14 @@ import javax.management.ObjectName;
 
 import org.apache.tools.ant.BuildException;
 
-
 /**
  * Access <em>JMX</em> JSR 160 MBeans Server.
  * <ul>
  * <li>open more then one JSR 160 rmi connection</li>
  * <li>Get/Set Mbeans attributes</li>
  * <li>Call Mbean Operation with arguments</li>
- * <li>Argument values can be converted from string to int,long,float,double,boolean,ObjectName or InetAddress </li>
+ * <li>Argument values can be converted from string to
+ * int,long,float,double,boolean,ObjectName or InetAddress</li>
  * <li>Query Mbeans</li>
  * <li>Show Get, Call, Query result at Ant console log</li>
  * <li>Bind Get, Call, Query result at Ant properties</li>
@@ -42,9 +40,10 @@ import org.apache.tools.ant.BuildException;
  *
  * Examples:
  * <ul>
- * <li>
- * Get a session attribute hello from session with ref <em>${sessionid.0}</em> form
- * app <em>Catalina:type=Manager,context=/ClusterTest,host=localhost</em>
+ * <li>Get a session attribute hello from session with ref
+ * <em>${sessionid.0}</em> form app
+ * <em>Catalina:type=Manager,context=/ClusterTest,host=localhost</em>
+ * 
  * <pre>
  *   &lt;jmx:invoke
  *           name="Catalina:type=Manager,context=/ClusterTest,host=localhost"
@@ -54,10 +53,9 @@ import org.apache.tools.ant.BuildException;
  *         &lt;arg value="Hello"/&gt;
  *   &lt;/jmx:invoke&gt;
  * </pre>
+ * 
  * </li>
- * <li>
- * Create new AccessLogger at localhost
- * <code>
+ * <li>Create new AccessLogger at localhost <code>
  *   &lt;jmx:invoke
  *           name="Catalina:type=MBeanFactory"
  *           operation="createAccessLoggerValve"
@@ -66,11 +64,8 @@ import org.apache.tools.ant.BuildException;
  *         &lt;arg value="Catalina:type=Host,host=localhost"/&gt;
  *   &lt;/jmx:invoke&gt;
  *
- * </code>
- * </li>
- * <li>
- * Remove existing AccessLogger at localhost
- * <code>
+ * </code></li>
+ * <li>Remove existing AccessLogger at localhost <code>
  *   &lt;jmx:invoke
  *           name="Catalina:type=MBeanFactory"
  *           operation="removeValve"
@@ -78,11 +73,11 @@ import org.apache.tools.ant.BuildException;
  *         &lt;arg value="Catalina:type=Valve,name=AccessLogValve,host=localhost"/&gt;
  *   &lt;/jmx:invoke&gt;
  *
- * </code>
- * </li>
+ * </code></li>
  * </ul>
  * <p>
- * First call to a remote MBeanserver save the JMXConnection a referenz <em>jmx.server</em>
+ * First call to a remote MBeanserver save the JMXConnection a referenz
+ * <em>jmx.server</em>
  * </p>
  * These tasks require Ant 1.6 or later interface.
  *
@@ -91,94 +86,104 @@ import org.apache.tools.ant.BuildException;
  */
 public class JMXAccessorInvokeTask extends JMXAccessorTask {
 
+	// ----------------------------------------------------- Instance Variables
 
-    // ----------------------------------------------------- Instance Variables
+	private String operation;
+	private List<Arg> args = new ArrayList<>();
 
-    private String operation ;
-    private List<Arg> args=new ArrayList<>();
+	// ------------------------------------------------------------- Properties
 
-    // ------------------------------------------------------------- Properties
+	/**
+	 * @return Returns the operation.
+	 */
+	public String getOperation()
+	{
+		return operation;
+	}
 
-    /**
-     * @return Returns the operation.
-     */
-    public String getOperation() {
-        return operation;
-    }
-    /**
-     * @param operation The operation to set.
-     */
-    public void setOperation(String operation) {
-        this.operation = operation;
-    }
+	/**
+	 * @param operation
+	 *            The operation to set.
+	 */
+	public void setOperation(String operation)
+	{
+		this.operation = operation;
+	}
 
-    public void addArg(Arg arg ) {
-        args.add(arg);
-    }
+	public void addArg(Arg arg)
+	{
+		args.add(arg);
+	}
 
-    /**
-     * @return Returns the args.
-     */
-    public List<Arg> getArgs() {
-        return args;
-    }
-    /**
-     * @param args The args to set.
-     */
-    public void setArgs(List<Arg> args) {
-        this.args = args;
-    }
+	/**
+	 * @return Returns the args.
+	 */
+	public List<Arg> getArgs()
+	{
+		return args;
+	}
 
-    // ------------------------------------------------------ protected Methods
+	/**
+	 * @param args
+	 *            The args to set.
+	 */
+	public void setArgs(List<Arg> args)
+	{
+		this.args = args;
+	}
 
-    @Override
-    public String jmxExecute(MBeanServerConnection jmxServerConnection)
-        throws Exception {
+	// ------------------------------------------------------ protected Methods
 
-        if (getName() == null) {
-            throw new BuildException("Must specify a 'name'");
-        }
-        if ((operation == null)) {
-            throw new BuildException(
-                    "Must specify a 'operation' for call");
-        }
-        return  jmxInvoke(jmxServerConnection, getName());
-     }
+	@Override
+	public String jmxExecute(MBeanServerConnection jmxServerConnection) throws Exception
+	{
 
-    /**
-     * Invoke specified operation.
-     *
-     * @param jmxServerConnection Connection to the JMX server
-     * @param name The MBean name
-     * @return null (no error message to report other than exception)
-     * @throws Exception An error occurred
-     */
-    protected String jmxInvoke(MBeanServerConnection jmxServerConnection, String name) throws Exception {
-        Object result ;
-        if (args == null) {
-             result = jmxServerConnection.invoke(new ObjectName(name),
-                    operation, null, null);
-        } else {
-            Object argsA[]=new Object[ args.size()];
-            String sigA[]=new String[args.size()];
-            for( int i=0; i<args.size(); i++ ) {
-                Arg arg=args.get(i);
-                if (arg.getType() == null) {
-                    arg.setType("java.lang.String");
-                    sigA[i]=arg.getType();
-                    argsA[i]=arg.getValue();
-                } else {
-                    sigA[i]=arg.getType();
-                    argsA[i]=convertStringToType(arg.getValue(),arg.getType());
-                }
-            }
-            result = jmxServerConnection.invoke(new ObjectName(name), operation, argsA, sigA);
-        }
-        if(result != null) {
-            echoResult(operation,result);
-            createProperty(result);
-        }
-        return null;
-    }
+		if (getName() == null) {
+			throw new BuildException("Must specify a 'name'");
+		}
+		if ((operation == null)) {
+			throw new BuildException("Must specify a 'operation' for call");
+		}
+		return jmxInvoke(jmxServerConnection, getName());
+	}
+
+	/**
+	 * Invoke specified operation.
+	 *
+	 * @param jmxServerConnection
+	 *            Connection to the JMX server
+	 * @param name
+	 *            The MBean name
+	 * @return null (no error message to report other than exception)
+	 * @throws Exception
+	 *             An error occurred
+	 */
+	protected String jmxInvoke(MBeanServerConnection jmxServerConnection, String name) throws Exception
+	{
+		Object result;
+		if (args == null) {
+			result = jmxServerConnection.invoke(new ObjectName(name), operation, null, null);
+		} else {
+			Object argsA[] = new Object[args.size()];
+			String sigA[] = new String[args.size()];
+			for (int i = 0; i < args.size(); i++) {
+				Arg arg = args.get(i);
+				if (arg.getType() == null) {
+					arg.setType("java.lang.String");
+					sigA[i] = arg.getType();
+					argsA[i] = arg.getValue();
+				} else {
+					sigA[i] = arg.getType();
+					argsA[i] = convertStringToType(arg.getValue(), arg.getType());
+				}
+			}
+			result = jmxServerConnection.invoke(new ObjectName(name), operation, argsA, sigA);
+		}
+		if (result != null) {
+			echoResult(operation, result);
+			createProperty(result);
+		}
+		return null;
+	}
 
 }

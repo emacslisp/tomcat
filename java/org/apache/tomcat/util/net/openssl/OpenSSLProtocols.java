@@ -27,19 +27,19 @@ import org.apache.tomcat.util.net.Constants;
  */
 public class OpenSSLProtocols {
 
-    private List<String> openSSLProtocols = new ArrayList<>();
+	private List<String> openSSLProtocols = new ArrayList<>();
 
-    public OpenSSLProtocols(String preferredJSSEProto) {
-        Collections.addAll(openSSLProtocols, Constants.SSL_PROTO_TLSv1_2,
-                Constants.SSL_PROTO_TLSv1_1, Constants.SSL_PROTO_TLSv1,
-                Constants.SSL_PROTO_SSLv3, Constants.SSL_PROTO_SSLv2);
-        if(openSSLProtocols.contains(preferredJSSEProto)) {
-            openSSLProtocols.remove(preferredJSSEProto);
-            openSSLProtocols.add(0, preferredJSSEProto);
-        }
-    }
+	public OpenSSLProtocols(String preferredJSSEProto) {
+		Collections.addAll(openSSLProtocols, Constants.SSL_PROTO_TLSv1_2, Constants.SSL_PROTO_TLSv1_1,
+				Constants.SSL_PROTO_TLSv1, Constants.SSL_PROTO_SSLv3, Constants.SSL_PROTO_SSLv2);
+		if (openSSLProtocols.contains(preferredJSSEProto)) {
+			openSSLProtocols.remove(preferredJSSEProto);
+			openSSLProtocols.add(0, preferredJSSEProto);
+		}
+	}
 
-    public String[] getProtocols() {
-        return openSSLProtocols.toArray(new String[openSSLProtocols.size()]);
-    }
+	public String[] getProtocols()
+	{
+		return openSSLProtocols.toArray(new String[openSSLProtocols.size()]);
+	}
 }

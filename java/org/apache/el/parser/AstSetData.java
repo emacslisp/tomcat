@@ -26,26 +26,31 @@ import org.apache.el.lang.EvaluationContext;
 
 public class AstSetData extends SimpleNode {
 
-    public AstSetData(int id) {
-        super(id);
-    }
+	public AstSetData(int id) {
+		super(id);
+	}
 
-    @Override
-    public Object getValue(EvaluationContext ctx) throws ELException {
-        Set<Object> result = new HashSet<>();
+	@Override
+	public Object getValue(EvaluationContext ctx) throws ELException
+	{
+		Set<Object> result = new HashSet<>();
 
-        if (children != null) {
-            for (Node child : children) {
-                result.add(child.getValue(ctx));
-            }
-        }
+		if (children != null) {
+			for (Node child : children) {
+				result.add(child.getValue(ctx));
+			}
+		}
 
-        return result;
-    }
+		return result;
+	}
 
-    @Override
-    public Class<?> getType(EvaluationContext ctx) throws ELException {
-        return Set.class;
-    }
+	@Override
+	public Class<?> getType(EvaluationContext ctx) throws ELException
+	{
+		return Set.class;
+	}
 }
-/* JavaCC - OriginalChecksum=e1dc4e2011eee313491decfa9e0152fe (do not edit this line) */
+/*
+ * JavaCC - OriginalChecksum=e1dc4e2011eee313491decfa9e0152fe (do not edit this
+ * line)
+ */

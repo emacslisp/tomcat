@@ -31,202 +31,193 @@ import org.apache.tomcat.util.res.StringManager;
 
 public class Rfc6265CookieProcessor extends CookieProcessorBase {
 
-    private static final Log log = LogFactory.getLog(Rfc6265CookieProcessor.class);
+	private static final Log log = LogFactory.getLog(Rfc6265CookieProcessor.class);
 
-    private static final StringManager sm =
-            StringManager.getManager(Rfc6265CookieProcessor.class.getPackage().getName());
+	private static final StringManager sm = StringManager
+			.getManager(Rfc6265CookieProcessor.class.getPackage().getName());
 
-    private static final BitSet domainValid = new BitSet(128);
+	private static final BitSet domainValid = new BitSet(128);
 
-    static {
-        for (char c = '0'; c <= '9'; c++) {
-            domainValid.set(c);
-        }
-        for (char c = 'a'; c <= 'z'; c++) {
-            domainValid.set(c);
-        }
-        for (char c = 'A'; c <= 'Z'; c++) {
-            domainValid.set(c);
-        }
-        domainValid.set('.');
-        domainValid.set('-');
-    }
+	static {
+		for (char c = '0'; c <= '9'; c++) {
+			domainValid.set(c);
+		}
+		for (char c = 'a'; c <= 'z'; c++) {
+			domainValid.set(c);
+		}
+		for (char c = 'A'; c <= 'Z'; c++) {
+			domainValid.set(c);
+		}
+		domainValid.set('.');
+		domainValid.set('-');
+	}
 
+	@Override
+	public Charset getCharset()
+	{
+		return StandardCharsets.UTF_8;
+	}
 
-    @Override
-    public Charset getCharset() {
-        return StandardCharsets.UTF_8;
-    }
+	@Override
+	public void parseCookieHeader(MimeHeaders headers, ServerCookies serverCookies)
+	{
 
+		if (headers == null) {
+			// nothing to process
+			return;
+		}
 
-    @Override
-    public void parseCookieHeader(MimeHeaders headers,
-            ServerCookies serverCookies) {
+		// process each "cookie" header
+		int pos = headers.findHeader("Cookie", 0);
+		while (pos >= 0) {
+			MessageBytes cookieValue = headers.getValue(pos);
 
-        if (headers == null) {
-            // nothing to process
-            return;
-        }
+			if (cookieValue != null && !cookieValue.isNull()) {
+				if (cookieValue.getType() != MessageBytes.T_BYTES) {
+					if (log.isDebugEnabled()) {
+						Exception e = new Exception();
+						// TODO: Review this in light of HTTP/2
+						log.debug("Cookies: Parsing cookie as String. Expected bytes.", e);
+					}
+					cookieValue.toBytes();
+				}
+				if (log.isDebugEnabled()) {
+					log.debug("Cookies: Parsing b[]: " + cookieValue.toString());
+				}
+				ByteChunk bc = cookieValue.getByteChunk();
 
-        // process each "cookie" header
-        int pos = headers.findHeader("Cookie", 0);
-        while (pos >= 0) {
-            MessageBytes cookieValue = headers.getValue(pos);
+				Cookie.parseCookie(bc.getBytes(), bc.getOffset(), bc.getLength(), serverCookies);
+			}
 
-            if (cookieValue != null && !cookieValue.isNull() ) {
-                if (cookieValue.getType() != MessageBytes.T_BYTES ) {
-                    if (log.isDebugEnabled()) {
-                        Exception e = new Exception();
-                        // TODO: Review this in light of HTTP/2
-                        log.debug("Cookies: Parsing cookie as String. Expected bytes.", e);
-                    }
-                    cookieValue.toBytes();
-                }
-                if (log.isDebugEnabled()) {
-                    log.debug("Cookies: Parsing b[]: " + cookieValue.toString());
-                }
-                ByteChunk bc = cookieValue.getByteChunk();
+			// search from the next position
+			pos = headers.findHeader("Cookie", ++pos);
+		}
+	}
 
-                Cookie.parseCookie(bc.getBytes(), bc.getOffset(), bc.getLength(),
-                        serverCookies);
-            }
+	@Override
+	public String generateHeader(javax.servlet.http.Cookie cookie)
+	{
 
-            // search from the next position
-            pos = headers.findHeader("Cookie", ++pos);
-        }
-    }
+		// Can't use StringBuilder due to DateFormat
+		StringBuffer header = new StringBuffer();
 
+		// TODO: Name validation takes place in Cookie and cannot be configured
+		// per Context. Moving it to here would allow per Context config
+		// but delay validation until the header is generated. However,
+		// the spec requires an IllegalArgumentException on Cookie
+		// generation.
+		header.append(cookie.getName());
+		header.append('=');
+		String value = cookie.getValue();
+		if (value != null && value.length() > 0) {
+			validateCookieValue(value);
+			header.append(value);
+		}
 
-    @Override
-    public String generateHeader(javax.servlet.http.Cookie cookie) {
+		// RFC 6265 prefers Max-Age to Expires but... (see below)
+		int maxAge = cookie.getMaxAge();
+		if (maxAge > -1) {
+			// Negative Max-Age is equivalent to no Max-Age
+			header.append("; Max-Age=");
+			header.append(maxAge);
 
-        // Can't use StringBuilder due to DateFormat
-        StringBuffer header = new StringBuffer();
+			// Microsoft IE and Microsoft Edge don't understand Max-Age so send
+			// expires as well. Without this, persistent cookies fail with those
+			// browsers. See http://tomcat.markmail.org/thread/g6sipbofsjossacn
 
-        // TODO: Name validation takes place in Cookie and cannot be configured
-        //       per Context. Moving it to here would allow per Context config
-        //       but delay validation until the header is generated. However,
-        //       the spec requires an IllegalArgumentException on Cookie
-        //       generation.
-        header.append(cookie.getName());
-        header.append('=');
-        String value = cookie.getValue();
-        if (value != null && value.length() > 0) {
-            validateCookieValue(value);
-            header.append(value);
-        }
+			// Wdy, DD-Mon-YY HH:MM:SS GMT ( Expires Netscape format )
+			header.append("; Expires=");
+			// To expire immediately we need to set the time in past
+			if (maxAge == 0) {
+				header.append(ANCIENT_DATE);
+			} else {
+				COOKIE_DATE_FORMAT.get().format(new Date(System.currentTimeMillis() + maxAge * 1000L), header,
+						new FieldPosition(0));
+			}
+		}
 
-        // RFC 6265 prefers Max-Age to Expires but... (see below)
-        int maxAge = cookie.getMaxAge();
-        if (maxAge > -1) {
-            // Negative Max-Age is equivalent to no Max-Age
-            header.append("; Max-Age=");
-            header.append(maxAge);
+		String domain = cookie.getDomain();
+		if (domain != null && domain.length() > 0) {
+			validateDomain(domain);
+			header.append("; Domain=");
+			header.append(domain);
+		}
 
-            // Microsoft IE and Microsoft Edge don't understand Max-Age so send
-            // expires as well. Without this, persistent cookies fail with those
-            // browsers. See http://tomcat.markmail.org/thread/g6sipbofsjossacn
+		String path = cookie.getPath();
+		if (path != null && path.length() > 0) {
+			validatePath(path);
+			header.append("; Path=");
+			header.append(path);
+		}
 
-            // Wdy, DD-Mon-YY HH:MM:SS GMT ( Expires Netscape format )
-            header.append ("; Expires=");
-            // To expire immediately we need to set the time in past
-            if (maxAge == 0) {
-                header.append(ANCIENT_DATE);
-            } else {
-                COOKIE_DATE_FORMAT.get().format(
-                        new Date(System.currentTimeMillis() + maxAge * 1000L),
-                        header,
-                        new FieldPosition(0));
-            }
-        }
+		if (cookie.getSecure()) {
+			header.append("; Secure");
+		}
 
-        String domain = cookie.getDomain();
-        if (domain != null && domain.length() > 0) {
-            validateDomain(domain);
-            header.append("; Domain=");
-            header.append(domain);
-        }
+		if (cookie.isHttpOnly()) {
+			header.append("; HttpOnly");
+		}
 
-        String path = cookie.getPath();
-        if (path != null && path.length() > 0) {
-            validatePath(path);
-            header.append("; Path=");
-            header.append(path);
-        }
+		return header.toString();
+	}
 
-        if (cookie.getSecure()) {
-            header.append("; Secure");
-        }
+	private void validateCookieValue(String value)
+	{
+		int start = 0;
+		int end = value.length();
 
-        if (cookie.isHttpOnly()) {
-            header.append("; HttpOnly");
-        }
+		if (end > 1 && value.charAt(0) == '"' && value.charAt(end - 1) == '"') {
+			start = 1;
+			end--;
+		}
 
-        return header.toString();
-    }
+		char[] chars = value.toCharArray();
+		for (int i = start; i < end; i++) {
+			char c = chars[i];
+			if (c < 0x21 || c == 0x22 || c == 0x2c || c == 0x3b || c == 0x5c || c == 0x7f) {
+				throw new IllegalArgumentException(
+						sm.getString("rfc6265CookieProcessor.invalidCharInValue", Integer.toString(c)));
+			}
+		}
+	}
 
+	private void validateDomain(String domain)
+	{
+		int i = 0;
+		int prev = -1;
+		int cur = -1;
+		char[] chars = domain.toCharArray();
+		while (i < chars.length) {
+			prev = cur;
+			cur = chars[i];
+			if (!domainValid.get(cur)) {
+				throw new IllegalArgumentException(sm.getString("rfc6265CookieProcessor.invalidDomain", domain));
+			}
+			// labels must start with a letter or number
+			if ((prev == '.' || prev == -1) && (cur == '.' || cur == '-')) {
+				throw new IllegalArgumentException(sm.getString("rfc6265CookieProcessor.invalidDomain", domain));
+			}
+			// labels must end with a letter or number
+			if (prev == '-' && cur == '.') {
+				throw new IllegalArgumentException(sm.getString("rfc6265CookieProcessor.invalidDomain", domain));
+			}
+			i++;
+		}
+		// domain must end with a label
+		if (cur == '.' || cur == '-') {
+			throw new IllegalArgumentException(sm.getString("rfc6265CookieProcessor.invalidDomain", domain));
+		}
+	}
 
-    private void validateCookieValue(String value) {
-        int start = 0;
-        int end = value.length();
+	private void validatePath(String path)
+	{
+		char[] chars = path.toCharArray();
 
-        if (end > 1 && value.charAt(0) == '"' && value.charAt(end - 1) == '"') {
-            start = 1;
-            end--;
-        }
-
-        char[] chars = value.toCharArray();
-        for (int i = start; i < end; i++) {
-            char c = chars[i];
-            if (c < 0x21 || c == 0x22 || c == 0x2c || c == 0x3b || c == 0x5c || c == 0x7f) {
-                throw new IllegalArgumentException(sm.getString(
-                        "rfc6265CookieProcessor.invalidCharInValue", Integer.toString(c)));
-            }
-        }
-    }
-
-
-    private void validateDomain(String domain) {
-        int i = 0;
-        int prev = -1;
-        int cur = -1;
-        char[] chars = domain.toCharArray();
-        while (i < chars.length) {
-            prev = cur;
-            cur = chars[i];
-            if (!domainValid.get(cur)) {
-                throw new IllegalArgumentException(sm.getString(
-                        "rfc6265CookieProcessor.invalidDomain", domain));
-            }
-            // labels must start with a letter or number
-            if ((prev == '.' || prev == -1) && (cur == '.' || cur == '-')) {
-                throw new IllegalArgumentException(sm.getString(
-                        "rfc6265CookieProcessor.invalidDomain", domain));
-            }
-            // labels must end with a letter or number
-            if (prev == '-' && cur == '.') {
-                throw new IllegalArgumentException(sm.getString(
-                        "rfc6265CookieProcessor.invalidDomain", domain));
-            }
-            i++;
-        }
-        // domain must end with a label
-        if (cur == '.' || cur == '-') {
-            throw new IllegalArgumentException(sm.getString(
-                    "rfc6265CookieProcessor.invalidDomain", domain));
-        }
-    }
-
-
-    private void validatePath(String path) {
-        char[] chars = path.toCharArray();
-
-        for (int i = 0; i < chars.length; i++) {
-            char ch = chars[i];
-            if (ch < 0x20 || ch > 0x7E || ch == ';') {
-                throw new IllegalArgumentException(sm.getString(
-                        "rfc6265CookieProcessor.invalidPath", path));
-            }
-        }
-    }
+		for (int i = 0; i < chars.length; i++) {
+			char ch = chars[i];
+			if (ch < 0x20 || ch > 0x7E || ch == ';') {
+				throw new IllegalArgumentException(sm.getString("rfc6265CookieProcessor.invalidPath", path));
+			}
+		}
+	}
 }

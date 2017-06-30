@@ -35,167 +35,186 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * A <strong>Valve</strong> that supports a "single sign on" user experience on
- * each nodes of a cluster, where the security identity of a user who successfully
- * authenticates to one web application is propagated to other web applications and
- * to other nodes cluster in the same security domain.  For successful use, the following
- * requirements must be met:
+ * each nodes of a cluster, where the security identity of a user who
+ * successfully authenticates to one web application is propagated to other web
+ * applications and to other nodes cluster in the same security domain. For
+ * successful use, the following requirements must be met:
  * <ul>
- * <li>This Valve must be configured on the Container that represents a
- *     virtual host (typically an implementation of <code>Host</code>).</li>
- * <li>The <code>Realm</code> that contains the shared user and role
- *     information must be configured on the same Container (or a higher
- *     one), and not overridden at the web application level.</li>
+ * <li>This Valve must be configured on the Container that represents a virtual
+ * host (typically an implementation of <code>Host</code>).</li>
+ * <li>The <code>Realm</code> that contains the shared user and role information
+ * must be configured on the same Container (or a higher one), and not
+ * overridden at the web application level.</li>
  * <li>The web applications themselves must use one of the standard
- *     Authenticators found in the
- *     <code>org.apache.catalina.authenticator</code> package.</li>
+ * Authenticators found in the <code>org.apache.catalina.authenticator</code>
+ * package.</li>
  * </ul>
  *
  * @author Fabien Carrion
  */
 public class ClusterSingleSignOn extends SingleSignOn implements ClusterValve, MapOwner {
 
-    private static final StringManager sm = StringManager.getManager(ClusterSingleSignOn.class);
+	private static final StringManager sm = StringManager.getManager(ClusterSingleSignOn.class);
 
-    // -------------------------------------------------------------- Properties
+	// -------------------------------------------------------------- Properties
 
-    private CatalinaCluster cluster = null;
-    @Override
-    public CatalinaCluster getCluster() { return cluster; }
-    @Override
-    public void setCluster(CatalinaCluster cluster) {
-        this.cluster = cluster;
-    }
+	private CatalinaCluster cluster = null;
 
+	@Override
+	public CatalinaCluster getCluster()
+	{
+		return cluster;
+	}
 
-    private long rpcTimeout = 15000;
-    public long getRpcTimeout() {
-        return rpcTimeout;
-    }
-    public void setRpcTimeout(long rpcTimeout) {
-        this.rpcTimeout = rpcTimeout;
-    }
+	@Override
+	public void setCluster(CatalinaCluster cluster)
+	{
+		this.cluster = cluster;
+	}
 
+	private long rpcTimeout = 15000;
 
-    private int mapSendOptions =
-            Channel.SEND_OPTIONS_SYNCHRONIZED_ACK | Channel.SEND_OPTIONS_USE_ACK;
-    public int getMapSendOptions() {
-        return mapSendOptions;
-    }
-    public void setMapSendOptions(int mapSendOptions) {
-        this.mapSendOptions = mapSendOptions;
-    }
+	public long getRpcTimeout()
+	{
+		return rpcTimeout;
+	}
 
+	public void setRpcTimeout(long rpcTimeout)
+	{
+		this.rpcTimeout = rpcTimeout;
+	}
 
-    private boolean terminateOnStartFailure = false;
-    public boolean getTerminateOnStartFailure() {
-        return terminateOnStartFailure;
-    }
+	private int mapSendOptions = Channel.SEND_OPTIONS_SYNCHRONIZED_ACK | Channel.SEND_OPTIONS_USE_ACK;
 
-    public void setTerminateOnStartFailure(boolean terminateOnStartFailure) {
-        this.terminateOnStartFailure = terminateOnStartFailure;
-    }
+	public int getMapSendOptions()
+	{
+		return mapSendOptions;
+	}
 
-    private long accessTimeout = 5000;
-    public long getAccessTimeout() {
-        return accessTimeout;
-    }
+	public void setMapSendOptions(int mapSendOptions)
+	{
+		this.mapSendOptions = mapSendOptions;
+	}
 
-    public void setAccessTimeout(long accessTimeout) {
-        this.accessTimeout = accessTimeout;
-    }
+	private boolean terminateOnStartFailure = false;
 
-    // ---------------------------------------------------- SingleSignOn Methods
+	public boolean getTerminateOnStartFailure()
+	{
+		return terminateOnStartFailure;
+	}
 
-    @Override
-    protected boolean associate(String ssoId, Session session) {
-        boolean result = super.associate(ssoId, session);
-        if (result) {
-            ((ReplicatedMap<String,SingleSignOnEntry>) cache).replicate(ssoId, true);
-        }
-        return result;
-    }
+	public void setTerminateOnStartFailure(boolean terminateOnStartFailure)
+	{
+		this.terminateOnStartFailure = terminateOnStartFailure;
+	}
 
-    @Override
-    protected boolean update(String ssoId, Principal principal, String authType,
-            String username, String password) {
-        boolean result = super.update(ssoId, principal, authType, username, password);
-        if (result) {
-            ((ReplicatedMap<String,SingleSignOnEntry>) cache).replicate(ssoId, true);
-        }
-        return result;
-    }
+	private long accessTimeout = 5000;
 
-    @Override
-    protected SessionListener getSessionListener(String ssoId) {
-        return new ClusterSingleSignOnListener(ssoId);
-    }
+	public long getAccessTimeout()
+	{
+		return accessTimeout;
+	}
 
+	public void setAccessTimeout(long accessTimeout)
+	{
+		this.accessTimeout = accessTimeout;
+	}
 
-    // -------------------------------------------------------- MapOwner Methods
+	// ---------------------------------------------------- SingleSignOn Methods
 
-    @Override
-    public void objectMadePrimary(Object key, Object value) {
-        // NO-OP
-    }
+	@Override
+	protected boolean associate(String ssoId, Session session)
+	{
+		boolean result = super.associate(ssoId, session);
+		if (result) {
+			((ReplicatedMap<String, SingleSignOnEntry>) cache).replicate(ssoId, true);
+		}
+		return result;
+	}
 
+	@Override
+	protected boolean update(String ssoId, Principal principal, String authType, String username, String password)
+	{
+		boolean result = super.update(ssoId, principal, authType, username, password);
+		if (result) {
+			((ReplicatedMap<String, SingleSignOnEntry>) cache).replicate(ssoId, true);
+		}
+		return result;
+	}
 
-    // ------------------------------------------------------- Lifecycle Methods
+	@Override
+	protected SessionListener getSessionListener(String ssoId)
+	{
+		return new ClusterSingleSignOnListener(ssoId);
+	}
 
-    /**
-     * Start this component and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
-     */
-    @Override
-    protected synchronized void startInternal() throws LifecycleException {
+	// -------------------------------------------------------- MapOwner Methods
 
-        // Load the cluster component, if any
-        try {
-            if(cluster == null) {
-                Container host = getContainer();
-                if(host instanceof Host) {
-                    if(host.getCluster() instanceof CatalinaCluster) {
-                        setCluster((CatalinaCluster) host.getCluster());
-                    }
-                }
-            }
-            if (cluster == null) {
-                throw new LifecycleException(sm.getString("clusterSingleSignOn.nocluster"));
-            }
+	@Override
+	public void objectMadePrimary(Object key, Object value)
+	{
+		// NO-OP
+	}
 
-            ClassLoader[] cls = new ClassLoader[] { this.getClass().getClassLoader() };
+	// ------------------------------------------------------- Lifecycle Methods
 
-            ReplicatedMap<String,SingleSignOnEntry> cache = new ReplicatedMap<>(
-                    this, cluster.getChannel(), rpcTimeout, cluster.getClusterName() + "-SSO-cache",
-                    cls, terminateOnStartFailure);
-            cache.setChannelSendOptions(mapSendOptions);
-            cache.setAccessTimeout(accessTimeout);
-            this.cache = cache;
-        } catch (Throwable t) {
-            ExceptionUtils.handleThrowable(t);
-            throw new LifecycleException(sm.getString("clusterSingleSignOn.clusterLoad.fail"), t);
-        }
+	/**
+	 * Start this component and implement the requirements of
+	 * {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
+	 *
+	 * @exception LifecycleException
+	 *                if this component detects a fatal error that prevents this
+	 *                component from being used
+	 */
+	@Override
+	protected synchronized void startInternal() throws LifecycleException
+	{
 
-        super.startInternal();
-    }
+		// Load the cluster component, if any
+		try {
+			if (cluster == null) {
+				Container host = getContainer();
+				if (host instanceof Host) {
+					if (host.getCluster() instanceof CatalinaCluster) {
+						setCluster((CatalinaCluster) host.getCluster());
+					}
+				}
+			}
+			if (cluster == null) {
+				throw new LifecycleException(sm.getString("clusterSingleSignOn.nocluster"));
+			}
 
+			ClassLoader[] cls = new ClassLoader[] { this.getClass().getClassLoader() };
 
-    /**
-     * Stop this component and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#stopInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
-     */
-    @Override
-    protected synchronized void stopInternal() throws LifecycleException {
+			ReplicatedMap<String, SingleSignOnEntry> cache = new ReplicatedMap<>(this, cluster.getChannel(), rpcTimeout,
+					cluster.getClusterName() + "-SSO-cache", cls, terminateOnStartFailure);
+			cache.setChannelSendOptions(mapSendOptions);
+			cache.setAccessTimeout(accessTimeout);
+			this.cache = cache;
+		} catch (Throwable t) {
+			ExceptionUtils.handleThrowable(t);
+			throw new LifecycleException(sm.getString("clusterSingleSignOn.clusterLoad.fail"), t);
+		}
 
-        super.stopInternal();
+		super.startInternal();
+	}
 
-        if (getCluster() != null) {
-            ((ReplicatedMap<?,?>) cache).breakdown();
-        }
-    }
+	/**
+	 * Stop this component and implement the requirements of
+	 * {@link org.apache.catalina.util.LifecycleBase#stopInternal()}.
+	 *
+	 * @exception LifecycleException
+	 *                if this component detects a fatal error that prevents this
+	 *                component from being used
+	 */
+	@Override
+	protected synchronized void stopInternal() throws LifecycleException
+	{
+
+		super.stopInternal();
+
+		if (getCluster() != null) {
+			((ReplicatedMap<?, ?>) cache).breakdown();
+		}
+	}
 }

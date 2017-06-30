@@ -36,110 +36,101 @@ import javax.websocket.server.ServerEndpointConfig;
  * {@link ServerEndpoint} so that Endpoint can be published via the WebSocket
  * server.
  */
-@HandlesTypes({ServerEndpoint.class, ServerApplicationConfig.class,
-        Endpoint.class})
+@HandlesTypes({ ServerEndpoint.class, ServerApplicationConfig.class, Endpoint.class })
 public class WsSci implements ServletContainerInitializer {
 
-    @Override
-    public void onStartup(Set<Class<?>> clazzes, ServletContext ctx)
-            throws ServletException {
+	@Override
+	public void onStartup(Set<Class<?>> clazzes, ServletContext ctx) throws ServletException
+	{
 
-        WsServerContainer sc = init(ctx, true);
+		WsServerContainer sc = init(ctx, true);
 
-        if (clazzes == null || clazzes.size() == 0) {
-            return;
-        }
+		if (clazzes == null || clazzes.size() == 0) {
+			return;
+		}
 
-        // Group the discovered classes by type
-        Set<ServerApplicationConfig> serverApplicationConfigs = new HashSet<>();
-        Set<Class<? extends Endpoint>> scannedEndpointClazzes = new HashSet<>();
-        Set<Class<?>> scannedPojoEndpoints = new HashSet<>();
+		// Group the discovered classes by type
+		Set<ServerApplicationConfig> serverApplicationConfigs = new HashSet<>();
+		Set<Class<? extends Endpoint>> scannedEndpointClazzes = new HashSet<>();
+		Set<Class<?>> scannedPojoEndpoints = new HashSet<>();
 
-        try {
-            // wsPackage is "javax.websocket."
-            String wsPackage = ContainerProvider.class.getName();
-            wsPackage = wsPackage.substring(0, wsPackage.lastIndexOf('.') + 1);
-            for (Class<?> clazz : clazzes) {
-                int modifiers = clazz.getModifiers();
-                if (!Modifier.isPublic(modifiers) ||
-                        Modifier.isAbstract(modifiers)) {
-                    // Non-public or abstract - skip it.
-                    continue;
-                }
-                // Protect against scanning the WebSocket API JARs
-                if (clazz.getName().startsWith(wsPackage)) {
-                    continue;
-                }
-                if (ServerApplicationConfig.class.isAssignableFrom(clazz)) {
-                    serverApplicationConfigs.add(
-                            (ServerApplicationConfig) clazz.newInstance());
-                }
-                if (Endpoint.class.isAssignableFrom(clazz)) {
-                    @SuppressWarnings("unchecked")
-                    Class<? extends Endpoint> endpoint =
-                            (Class<? extends Endpoint>) clazz;
-                    scannedEndpointClazzes.add(endpoint);
-                }
-                if (clazz.isAnnotationPresent(ServerEndpoint.class)) {
-                    scannedPojoEndpoints.add(clazz);
-                }
-            }
-        } catch (InstantiationException | IllegalAccessException e) {
-            throw new ServletException(e);
-        }
+		try {
+			// wsPackage is "javax.websocket."
+			String wsPackage = ContainerProvider.class.getName();
+			wsPackage = wsPackage.substring(0, wsPackage.lastIndexOf('.') + 1);
+			for (Class<?> clazz : clazzes) {
+				int modifiers = clazz.getModifiers();
+				if (!Modifier.isPublic(modifiers) || Modifier.isAbstract(modifiers)) {
+					// Non-public or abstract - skip it.
+					continue;
+				}
+				// Protect against scanning the WebSocket API JARs
+				if (clazz.getName().startsWith(wsPackage)) {
+					continue;
+				}
+				if (ServerApplicationConfig.class.isAssignableFrom(clazz)) {
+					serverApplicationConfigs.add((ServerApplicationConfig) clazz.newInstance());
+				}
+				if (Endpoint.class.isAssignableFrom(clazz)) {
+					@SuppressWarnings("unchecked")
+					Class<? extends Endpoint> endpoint = (Class<? extends Endpoint>) clazz;
+					scannedEndpointClazzes.add(endpoint);
+				}
+				if (clazz.isAnnotationPresent(ServerEndpoint.class)) {
+					scannedPojoEndpoints.add(clazz);
+				}
+			}
+		} catch (InstantiationException | IllegalAccessException e) {
+			throw new ServletException(e);
+		}
 
-        // Filter the results
-        Set<ServerEndpointConfig> filteredEndpointConfigs = new HashSet<>();
-        Set<Class<?>> filteredPojoEndpoints = new HashSet<>();
+		// Filter the results
+		Set<ServerEndpointConfig> filteredEndpointConfigs = new HashSet<>();
+		Set<Class<?>> filteredPojoEndpoints = new HashSet<>();
 
-        if (serverApplicationConfigs.isEmpty()) {
-            filteredPojoEndpoints.addAll(scannedPojoEndpoints);
-        } else {
-            for (ServerApplicationConfig config : serverApplicationConfigs) {
-                Set<ServerEndpointConfig> configFilteredEndpoints =
-                        config.getEndpointConfigs(scannedEndpointClazzes);
-                if (configFilteredEndpoints != null) {
-                    filteredEndpointConfigs.addAll(configFilteredEndpoints);
-                }
-                Set<Class<?>> configFilteredPojos =
-                        config.getAnnotatedEndpointClasses(
-                                scannedPojoEndpoints);
-                if (configFilteredPojos != null) {
-                    filteredPojoEndpoints.addAll(configFilteredPojos);
-                }
-            }
-        }
+		if (serverApplicationConfigs.isEmpty()) {
+			filteredPojoEndpoints.addAll(scannedPojoEndpoints);
+		} else {
+			for (ServerApplicationConfig config : serverApplicationConfigs) {
+				Set<ServerEndpointConfig> configFilteredEndpoints = config.getEndpointConfigs(scannedEndpointClazzes);
+				if (configFilteredEndpoints != null) {
+					filteredEndpointConfigs.addAll(configFilteredEndpoints);
+				}
+				Set<Class<?>> configFilteredPojos = config.getAnnotatedEndpointClasses(scannedPojoEndpoints);
+				if (configFilteredPojos != null) {
+					filteredPojoEndpoints.addAll(configFilteredPojos);
+				}
+			}
+		}
 
-        try {
-            // Deploy endpoints
-            for (ServerEndpointConfig config : filteredEndpointConfigs) {
-                sc.addEndpoint(config);
-            }
-            // Deploy POJOs
-            for (Class<?> clazz : filteredPojoEndpoints) {
-                sc.addEndpoint(clazz);
-            }
-        } catch (DeploymentException e) {
-            throw new ServletException(e);
-        }
-    }
+		try {
+			// Deploy endpoints
+			for (ServerEndpointConfig config : filteredEndpointConfigs) {
+				sc.addEndpoint(config);
+			}
+			// Deploy POJOs
+			for (Class<?> clazz : filteredPojoEndpoints) {
+				sc.addEndpoint(clazz);
+			}
+		} catch (DeploymentException e) {
+			throw new ServletException(e);
+		}
+	}
 
+	static WsServerContainer init(ServletContext servletContext, boolean initBySciMechanism)
+	{
 
-    static WsServerContainer init(ServletContext servletContext,
-            boolean initBySciMechanism) {
+		WsServerContainer sc = new WsServerContainer(servletContext);
 
-        WsServerContainer sc = new WsServerContainer(servletContext);
+		servletContext.setAttribute(Constants.SERVER_CONTAINER_SERVLET_CONTEXT_ATTRIBUTE, sc);
 
-        servletContext.setAttribute(
-                Constants.SERVER_CONTAINER_SERVLET_CONTEXT_ATTRIBUTE, sc);
+		servletContext.addListener(new WsSessionListener(sc));
+		// Can't register the ContextListener again if the ContextListener is
+		// calling this method
+		if (initBySciMechanism) {
+			servletContext.addListener(new WsContextListener());
+		}
 
-        servletContext.addListener(new WsSessionListener(sc));
-        // Can't register the ContextListener again if the ContextListener is
-        // calling this method
-        if (initBySciMechanism) {
-            servletContext.addListener(new WsContextListener());
-        }
-
-        return sc;
-    }
+		return sc;
+	}
 }

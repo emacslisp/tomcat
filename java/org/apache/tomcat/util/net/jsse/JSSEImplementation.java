@@ -33,25 +33,28 @@ import org.apache.tomcat.util.net.SSLUtil;
 
 public class JSSEImplementation extends SSLImplementation {
 
-    public JSSEImplementation() {
-        // Make sure the keySizeCache is loaded now as part of connector startup
-        // else the cache will be populated on first use which will slow that
-        // request down.
-        JSSESupport.init();
-    }
+	public JSSEImplementation() {
+		// Make sure the keySizeCache is loaded now as part of connector startup
+		// else the cache will be populated on first use which will slow that
+		// request down.
+		JSSESupport.init();
+	}
 
-    @Override
-    public SSLSupport getSSLSupport(SSLSession session) {
-        return new JSSESupport(session);
-    }
+	@Override
+	public SSLSupport getSSLSupport(SSLSession session)
+	{
+		return new JSSESupport(session);
+	}
 
-    @Override
-    public SSLUtil getSSLUtil(SSLHostConfigCertificate certificate) {
-        return new JSSEUtil(certificate);
-    }
+	@Override
+	public SSLUtil getSSLUtil(SSLHostConfigCertificate certificate)
+	{
+		return new JSSEUtil(certificate);
+	}
 
-    @Override
-    public boolean isAlpnSupported() {
-        return JreCompat.isJre9Available();
-    }
+	@Override
+	public boolean isAlpnSupported()
+	{
+		return JreCompat.isJre9Available();
+	}
 }

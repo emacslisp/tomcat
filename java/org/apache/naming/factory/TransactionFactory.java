@@ -28,20 +28,23 @@ import org.apache.naming.TransactionRef;
  */
 public class TransactionFactory extends FactoryBase {
 
-    @Override
-    protected boolean isReferenceTypeSupported(Object obj) {
-        return obj instanceof TransactionRef;
-    }
+	@Override
+	protected boolean isReferenceTypeSupported(Object obj)
+	{
+		return obj instanceof TransactionRef;
+	}
 
-    @Override
-    protected ObjectFactory getDefaultFactory(Reference ref) {
-        // No default factory supported.
-        return null;
-    }
+	@Override
+	protected ObjectFactory getDefaultFactory(Reference ref)
+	{
+		// No default factory supported.
+		return null;
+	}
 
-    @Override
-    protected Object getLinked(Reference ref) {
-        // Not supported
-        return null;
-    }
+	@Override
+	protected Object getLinked(Reference ref)
+	{
+		// Not supported
+		return null;
+	}
 }

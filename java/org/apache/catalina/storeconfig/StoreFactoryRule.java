@@ -30,97 +30,107 @@ import org.xml.sax.Attributes;
 
 public class StoreFactoryRule extends Rule {
 
-    // ----------------------------------------------------------- Constructors
+	// ----------------------------------------------------------- Constructors
 
-    /**
-     * Construct a new instance of this Rule.
-     *
-     * @param storeFactoryClass
-     *            Default name of the StoreFactory implementation class to be
-     *            created
-     * @param attributeName
-     *            Name of the attribute that optionally includes an override
-     *            name of the IStoreFactory class
-     * @param storeAppenderClass The store appender class
-     * @param appenderAttributeName The attribute name for the store
-     *  appender class
-     */
-    public StoreFactoryRule(String storeFactoryClass, String attributeName,
-            String storeAppenderClass, String appenderAttributeName) {
+	/**
+	 * Construct a new instance of this Rule.
+	 *
+	 * @param storeFactoryClass
+	 *            Default name of the StoreFactory implementation class to be
+	 *            created
+	 * @param attributeName
+	 *            Name of the attribute that optionally includes an override
+	 *            name of the IStoreFactory class
+	 * @param storeAppenderClass
+	 *            The store appender class
+	 * @param appenderAttributeName
+	 *            The attribute name for the store appender class
+	 */
+	public StoreFactoryRule(String storeFactoryClass, String attributeName, String storeAppenderClass,
+			String appenderAttributeName) {
 
-        this.storeFactoryClass = storeFactoryClass;
-        this.attributeName = attributeName;
-        this.appenderAttributeName = appenderAttributeName;
-        this.storeAppenderClass = storeAppenderClass;
+		this.storeFactoryClass = storeFactoryClass;
+		this.attributeName = attributeName;
+		this.appenderAttributeName = appenderAttributeName;
+		this.storeAppenderClass = storeAppenderClass;
 
-    }
+	}
 
-    // ----------------------------------------------------- Instance Variables
+	// ----------------------------------------------------- Instance Variables
 
-    /**
-     * The attribute name of an attribute that can override the implementation
-     * class name.
-     */
-    private String attributeName;
+	/**
+	 * The attribute name of an attribute that can override the implementation
+	 * class name.
+	 */
+	private String attributeName;
 
-    private String appenderAttributeName;
+	private String appenderAttributeName;
 
-    /**
-     * The name of the <code>IStoreFactory</code> implementation class.
-     */
-    private String storeFactoryClass;
+	/**
+	 * The name of the <code>IStoreFactory</code> implementation class.
+	 */
+	private String storeFactoryClass;
 
-    private String storeAppenderClass;
+	private String storeAppenderClass;
 
-    // --------------------------------------------------------- Public Methods
+	// --------------------------------------------------------- Public Methods
 
-    /**
-     * Handle the beginning of an XML element.
-     *
-     * @param namespace XML namespace
-     * @param name The element name
-     * @param attributes The attributes of this element
-     * @exception Exception if a processing error occurs
-     */
-    @Override
-    public void begin(String namespace, String name, Attributes attributes)
-            throws Exception {
+	/**
+	 * Handle the beginning of an XML element.
+	 *
+	 * @param namespace
+	 *            XML namespace
+	 * @param name
+	 *            The element name
+	 * @param attributes
+	 *            The attributes of this element
+	 * @exception Exception
+	 *                if a processing error occurs
+	 */
+	@Override
+	public void begin(String namespace, String name, Attributes attributes) throws Exception
+	{
 
-        IStoreFactory factory = (IStoreFactory) newInstance(attributeName,
-                storeFactoryClass, attributes);
-        StoreAppender storeAppender = (StoreAppender) newInstance(
-                appenderAttributeName, storeAppenderClass, attributes);
-        factory.setStoreAppender(storeAppender);
+		IStoreFactory factory = (IStoreFactory) newInstance(attributeName, storeFactoryClass, attributes);
+		StoreAppender storeAppender = (StoreAppender) newInstance(appenderAttributeName, storeAppenderClass,
+				attributes);
+		factory.setStoreAppender(storeAppender);
 
-        // Add this StoreFactory to our associated component
-        StoreDescription desc = (StoreDescription) digester.peek(0);
-        StoreRegistry registry = (StoreRegistry) digester.peek(1);
-        factory.setRegistry(registry);
-        desc.setStoreFactory(factory);
+		// Add this StoreFactory to our associated component
+		StoreDescription desc = (StoreDescription) digester.peek(0);
+		StoreRegistry registry = (StoreRegistry) digester.peek(1);
+		factory.setRegistry(registry);
+		desc.setStoreFactory(factory);
 
-    }
+	}
 
-    /**
-     * Create new instance from attribute className!
-     *
-     * @param attr class Name attribute
-     * @param defaultName Default Class
-     * @param attributes current digester attribute elements
-     * @return new configured object instance
-     * @throws ClassNotFoundException Class was not found
-     * @throws InstantiationException Error creating an instance
-     * @throws IllegalAccessException Security exception
-     */
-    protected Object newInstance(String attr, String defaultName,
-            Attributes attributes) throws ClassNotFoundException,
-            InstantiationException, IllegalAccessException {
-        String className = defaultName;
-        if (attr != null) {
-            String value = attributes.getValue(attr);
-            if (value != null)
-                className = value;
-        }
-        Class<?> clazz = Class.forName(className);
-        return clazz.newInstance();
-    }
+	/**
+	 * Create new instance from attribute className!
+	 *
+	 * @param attr
+	 *            class Name attribute
+	 * @param defaultName
+	 *            Default Class
+	 * @param attributes
+	 *            current digester attribute elements
+	 * @return new configured object instance
+	 * @throws ClassNotFoundException
+	 *             Class was not found
+	 * @throws InstantiationException
+	 *             Error creating an instance
+	 * @throws IllegalAccessException
+	 *             Security exception
+	 */
+	protected Object newInstance(String attr, String defaultName, Attributes attributes)
+			throws ClassNotFoundException, InstantiationException, IllegalAccessException
+	{
+		String className = defaultName;
+		if (attr != null) {
+			String value = attributes.getValue(attr);
+			if (value != null)
+				className = value;
+		}
+		Class<?> clazz = Class.forName(className);
+		return clazz.newInstance();
+	}
 }

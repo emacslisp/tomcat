@@ -29,22 +29,25 @@ import java.util.EventListener;
  */
 public interface HttpSessionActivationListener extends EventListener {
 
-    /**
-     * Notification that the session is about to be passivated.
-     * The default implementation is a NO-OP.
-     *
-     * @param se Information about the session this is about to be passivated
-     */
-    public default void sessionWillPassivate(HttpSessionEvent se) {
-    }
+	/**
+	 * Notification that the session is about to be passivated. The default
+	 * implementation is a NO-OP.
+	 *
+	 * @param se
+	 *            Information about the session this is about to be passivated
+	 */
+	public default void sessionWillPassivate(HttpSessionEvent se)
+	{
+	}
 
-    /**
-     * Notification that the session has just been activated.
-     * The default implementation is a NO-OP.
-     *
-     * @param se Information about the session this has just been activated
-     */
-    public default void sessionDidActivate(HttpSessionEvent se) {
-    }
+	/**
+	 * Notification that the session has just been activated. The default
+	 * implementation is a NO-OP.
+	 *
+	 * @param se
+	 *            Information about the session this has just been activated
+	 */
+	public default void sessionDidActivate(HttpSessionEvent se)
+	{
+	}
 }
-

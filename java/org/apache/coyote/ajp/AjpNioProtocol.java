@@ -26,23 +26,25 @@ import org.apache.tomcat.util.net.NioEndpoint;
  */
 public class AjpNioProtocol extends AbstractAjpProtocol<NioChannel> {
 
-    private static final Log log = LogFactory.getLog(AjpNioProtocol.class);
+	private static final Log log = LogFactory.getLog(AjpNioProtocol.class);
 
-    @Override
-    protected Log getLog() { return log; }
+	@Override
+	protected Log getLog()
+	{
+		return log;
+	}
 
+	// ------------------------------------------------------------ Constructor
 
-    // ------------------------------------------------------------ Constructor
+	public AjpNioProtocol() {
+		super(new NioEndpoint());
+	}
 
-    public AjpNioProtocol() {
-        super(new NioEndpoint());
-    }
+	// ----------------------------------------------------- JMX related methods
 
-
-    // ----------------------------------------------------- JMX related methods
-
-    @Override
-    protected String getNamePrefix() {
-        return "ajp-nio";
-    }
+	@Override
+	protected String getNamePrefix()
+	{
+		return "ajp-nio";
+	}
 }

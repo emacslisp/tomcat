@@ -39,5 +39,5 @@ package javax.servlet;
  */
 @Deprecated
 public interface SingleThreadModel {
-    // No methods
+	// No methods
 }

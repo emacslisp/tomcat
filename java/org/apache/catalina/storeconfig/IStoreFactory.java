@@ -19,16 +19,15 @@ package org.apache.catalina.storeconfig;
 import java.io.PrintWriter;
 
 public interface IStoreFactory {
-    StoreAppender getStoreAppender();
+	StoreAppender getStoreAppender();
 
-    void setStoreAppender(StoreAppender storeWriter);
+	void setStoreAppender(StoreAppender storeWriter);
 
-    void setRegistry(StoreRegistry aRegistry);
+	void setRegistry(StoreRegistry aRegistry);
 
-    StoreRegistry getRegistry();
+	StoreRegistry getRegistry();
 
-    void store(PrintWriter aWriter, int indent, Object aElement)
-            throws Exception;
+	void store(PrintWriter aWriter, int indent, Object aElement) throws Exception;
 
-    void storeXMLHead(PrintWriter aWriter);
+	void storeXMLHead(PrintWriter aWriter);
 }

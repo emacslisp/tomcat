@@ -31,93 +31,103 @@ import javax.security.auth.x500.X500Principal;
  */
 public class PrivateKeyCallback implements Callback {
 
-    private final Request request;
-    private Certificate[] chain;
-    private PrivateKey key;
+	private final Request request;
+	private Certificate[] chain;
+	private PrivateKey key;
 
-    public PrivateKeyCallback(Request request) {
-        this.request = request;
-    }
+	public PrivateKeyCallback(Request request) {
+		this.request = request;
+	}
 
-    public Request getRequest() {
-        return request;
-    }
+	public Request getRequest()
+	{
+		return request;
+	}
 
-    public void setKey(PrivateKey key, Certificate[] chain) {
-        this.key = key;
-        this.chain = chain;
-    }
+	public void setKey(PrivateKey key, Certificate[] chain)
+	{
+		this.key = key;
+		this.chain = chain;
+	}
 
-    public PrivateKey getKey() {
-        return key;
-    }
+	public PrivateKey getKey()
+	{
+		return key;
+	}
 
-    public Certificate[] getChain() {
-        return chain;
-    }
+	public Certificate[] getChain()
+	{
+		return chain;
+	}
 
-    public static interface Request {
-    }
+	public static interface Request {
+	}
 
-    public static class AliasRequest implements Request {
+	public static class AliasRequest implements Request {
 
-        private final String alias;
+		private final String alias;
 
-        public AliasRequest(String alias) {
-            this.alias = alias;
-        }
+		public AliasRequest(String alias) {
+			this.alias = alias;
+		}
 
-        public String getAlias() {
-            return alias;
-        }
-    }
+		public String getAlias()
+		{
+			return alias;
+		}
+	}
 
-    public static class DigestRequest implements Request {
-        private final byte[] digest;
-        private final String algorithm;
+	public static class DigestRequest implements Request {
+		private final byte[] digest;
+		private final String algorithm;
 
-        public DigestRequest(byte[] digest, String algorithm) {
-            this.digest = digest;
-            this.algorithm = algorithm;
-        }
+		public DigestRequest(byte[] digest, String algorithm) {
+			this.digest = digest;
+			this.algorithm = algorithm;
+		}
 
-        public byte[] getDigest() {
-            return digest;
-        }
+		public byte[] getDigest()
+		{
+			return digest;
+		}
 
-        public String getAlgorithm() {
-            return algorithm;
-        }
-    }
+		public String getAlgorithm()
+		{
+			return algorithm;
+		}
+	}
 
-    public static class SubjectKeyIDRequest implements Request {
+	public static class SubjectKeyIDRequest implements Request {
 
-        private final byte[] subjectKeyID;
+		private final byte[] subjectKeyID;
 
-        public SubjectKeyIDRequest(byte[] subjectKeyID) {
-            this.subjectKeyID = subjectKeyID;
-        }
+		public SubjectKeyIDRequest(byte[] subjectKeyID) {
+			this.subjectKeyID = subjectKeyID;
+		}
 
-        public byte[] getSubjectKeyID() {
-            return subjectKeyID;
-        }
-    }
+		public byte[] getSubjectKeyID()
+		{
+			return subjectKeyID;
+		}
+	}
 
-    public static class IssuerSerialNumRequest implements Request {
-        private final X500Principal issuer;
-        private final BigInteger serialNum;
+	public static class IssuerSerialNumRequest implements Request {
+		private final X500Principal issuer;
+		private final BigInteger serialNum;
 
-        public IssuerSerialNumRequest(X500Principal issuer, BigInteger serialNum) {
-            this.issuer = issuer;
-            this.serialNum = serialNum;
-        }
+		public IssuerSerialNumRequest(X500Principal issuer, BigInteger serialNum) {
+			this.issuer = issuer;
+			this.serialNum = serialNum;
+		}
 
-        public X500Principal getIssuer() {
-            return issuer;
-        }
+		public X500Principal getIssuer()
+		{
+			return issuer;
+		}
 
-        public BigInteger getSerialNum() {
-            return serialNum;
-        }
-    }
+		public BigInteger getSerialNum()
+		{
+			return serialNum;
+		}
+	}
 }

@@ -23,42 +23,42 @@ package org.apache.tomcat.util.net;
  */
 public enum SocketEvent {
 
-    /**
-     * Data is available to be read.
-     */
-    OPEN_READ,
+	/**
+	 * Data is available to be read.
+	 */
+	OPEN_READ,
 
-    /**
-     * The socket is ready to be written to.
-     */
-    OPEN_WRITE,
+	/**
+	 * The socket is ready to be written to.
+	 */
+	OPEN_WRITE,
 
-    /**
-     * The associated Connector/Endpoint is stopping and the connection/socket
-     * needs to be closed cleanly.
-     */
-    STOP,
+	/**
+	 * The associated Connector/Endpoint is stopping and the connection/socket
+	 * needs to be closed cleanly.
+	 */
+	STOP,
 
-    /**
-     * A timeout has occurred and the connection needs to be closed cleanly.
-     * Currently this is only used by the Servlet 3.0 async processing.
-     */
-    TIMEOUT,
+	/**
+	 * A timeout has occurred and the connection needs to be closed cleanly.
+	 * Currently this is only used by the Servlet 3.0 async processing.
+	 */
+	TIMEOUT,
 
-    /**
-     * The client has disconnected.
-     */
-    DISCONNECT,
+	/**
+	 * The client has disconnected.
+	 */
+	DISCONNECT,
 
-    /**
-     * An error has occurred on a non-container thread and processing needs to
-     * return to the container for any necessary clean-up. Examples of where
-     * this is used include:
-     * <ul>
-     * <li>by NIO2 to signal the failure of a completion handler</li>
-     * <li>by the container to signal an I/O error on a non-container thread
-     *     during Servlet 3.0 asynchronous processing.</li>
-     * </ul>
-     */
-    ERROR
+	/**
+	 * An error has occurred on a non-container thread and processing needs to
+	 * return to the container for any necessary clean-up. Examples of where
+	 * this is used include:
+	 * <ul>
+	 * <li>by NIO2 to signal the failure of a completion handler</li>
+	 * <li>by the container to signal an I/O error on a non-container thread
+	 * during Servlet 3.0 asynchronous processing.</li>
+	 * </ul>
+	 */
+	ERROR
 }

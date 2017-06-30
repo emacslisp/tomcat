@@ -21,163 +21,166 @@ import java.util.Locale;
 import javax.servlet.ServletResponse;
 import javax.servlet.ServletResponseWrapper;
 
-
 /**
- * Wrapper around a <code>javax.servlet.ServletResponse</code>
- * that transforms an application response object (which might be the original
- * one passed to a servlet, or might be based on the 2.3
- * <code>javax.servlet.ServletResponseWrapper</code> class)
- * back into an internal <code>org.apache.catalina.Response</code>.
+ * Wrapper around a <code>javax.servlet.ServletResponse</code> that transforms
+ * an application response object (which might be the original one passed to a
+ * servlet, or might be based on the 2.3
+ * <code>javax.servlet.ServletResponseWrapper</code> class) back into an
+ * internal <code>org.apache.catalina.Response</code>.
  * <p>
- * <strong>WARNING</strong>:  Due to Java's lack of support for multiple
+ * <strong>WARNING</strong>: Due to Java's lack of support for multiple
  * inheritance, all of the logic in <code>ApplicationResponse</code> is
- * duplicated in <code>ApplicationHttpResponse</code>.  Make sure that you
- * keep these two classes in synchronization when making changes!
+ * duplicated in <code>ApplicationHttpResponse</code>. Make sure that you keep
+ * these two classes in synchronization when making changes!
  *
  * @author Craig R. McClanahan
  */
 class ApplicationResponse extends ServletResponseWrapper {
 
-    // ----------------------------------------------------------- Constructors
+	// ----------------------------------------------------------- Constructors
 
-    /**
-     * Construct a new wrapped response around the specified servlet response.
-     *
-     * @param response The servlet response being wrapped
-     * @param included <code>true</code> if this response is being processed
-     *  by a <code>RequestDispatcher.include()</code> call
-     */
-    public ApplicationResponse(ServletResponse response, boolean included) {
+	/**
+	 * Construct a new wrapped response around the specified servlet response.
+	 *
+	 * @param response
+	 *            The servlet response being wrapped
+	 * @param included
+	 *            <code>true</code> if this response is being processed by a
+	 *            <code>RequestDispatcher.include()</code> call
+	 */
+	public ApplicationResponse(ServletResponse response, boolean included) {
 
-        super(response);
-        setIncluded(included);
+		super(response);
+		setIncluded(included);
 
-    }
+	}
 
+	// ----------------------------------------------------- Instance Variables
 
-    // ----------------------------------------------------- Instance Variables
+	/**
+	 * Is this wrapped response the subject of an <code>include()</code> call?
+	 */
+	protected boolean included = false;
 
+	// ------------------------------------------------ ServletResponse Methods
 
-    /**
-     * Is this wrapped response the subject of an <code>include()</code>
-     * call?
-     */
-    protected boolean included = false;
+	/**
+	 * Disallow <code>reset()</code> calls on a included response.
+	 *
+	 * @exception IllegalStateException
+	 *                if the response has already been committed
+	 */
+	@Override
+	public void reset()
+	{
 
+		// If already committed, the wrapped response will throw ISE
+		if (!included || getResponse().isCommitted())
+			getResponse().reset();
 
-    // ------------------------------------------------ ServletResponse Methods
+	}
 
+	/**
+	 * Disallow <code>setContentLength(int)</code> calls on an included
+	 * response.
+	 *
+	 * @param len
+	 *            The new content length
+	 */
+	@Override
+	public void setContentLength(int len)
+	{
 
-    /**
-     * Disallow <code>reset()</code> calls on a included response.
-     *
-     * @exception IllegalStateException if the response has already
-     *  been committed
-     */
-    @Override
-    public void reset() {
+		if (!included)
+			getResponse().setContentLength(len);
 
-        // If already committed, the wrapped response will throw ISE
-        if (!included || getResponse().isCommitted())
-            getResponse().reset();
+	}
 
-    }
+	/**
+	 * Disallow <code>setContentLengthLong(long)</code> calls on an included
+	 * response.
+	 *
+	 * @param len
+	 *            The new content length
+	 */
+	@Override
+	public void setContentLengthLong(long len)
+	{
 
+		if (!included)
+			getResponse().setContentLengthLong(len);
 
-    /**
-     * Disallow <code>setContentLength(int)</code> calls on an included
-     * response.
-     *
-     * @param len The new content length
-     */
-    @Override
-    public void setContentLength(int len) {
+	}
 
-        if (!included)
-            getResponse().setContentLength(len);
+	/**
+	 * Disallow <code>setContentType()</code> calls on an included response.
+	 *
+	 * @param type
+	 *            The new content type
+	 */
+	@Override
+	public void setContentType(String type)
+	{
 
-    }
+		if (!included)
+			getResponse().setContentType(type);
 
+	}
 
-    /**
-     * Disallow <code>setContentLengthLong(long)</code> calls on an included
-     * response.
-     *
-     * @param len The new content length
-     */
-    @Override
-    public void setContentLengthLong(long len) {
+	/**
+	 * Ignore <code>setLocale()</code> calls on an included response.
+	 *
+	 * @param loc
+	 *            The new locale
+	 */
+	@Override
+	public void setLocale(Locale loc)
+	{
+		if (!included)
+			getResponse().setLocale(loc);
+	}
 
-        if (!included)
-            getResponse().setContentLengthLong(len);
+	/**
+	 * Ignore <code>setBufferSize()</code> calls on an included response.
+	 *
+	 * @param size
+	 *            The buffer size
+	 */
+	@Override
+	public void setBufferSize(int size)
+	{
+		if (!included)
+			getResponse().setBufferSize(size);
+	}
 
-    }
+	// ----------------------------------------- ServletResponseWrapper Methods
 
+	/**
+	 * Set the response that we are wrapping.
+	 *
+	 * @param response
+	 *            The new wrapped response
+	 */
+	@Override
+	public void setResponse(ServletResponse response)
+	{
 
-    /**
-     * Disallow <code>setContentType()</code> calls on an included response.
-     *
-     * @param type The new content type
-     */
-    @Override
-    public void setContentType(String type) {
+		super.setResponse(response);
 
-        if (!included)
-            getResponse().setContentType(type);
+	}
 
-    }
+	// -------------------------------------------------------- Package Methods
 
+	/**
+	 * Set the included flag for this response.
+	 *
+	 * @param included
+	 *            The new included flag
+	 */
+	void setIncluded(boolean included)
+	{
 
-    /**
-     * Ignore <code>setLocale()</code> calls on an included response.
-     *
-     * @param loc The new locale
-     */
-    @Override
-    public void setLocale(Locale loc) {
-        if (!included)
-            getResponse().setLocale(loc);
-    }
+		this.included = included;
 
-
-    /**
-     * Ignore <code>setBufferSize()</code> calls on an included response.
-     *
-     * @param size The buffer size
-     */
-    @Override
-    public void setBufferSize(int size) {
-        if (!included)
-            getResponse().setBufferSize(size);
-    }
-
-
-    // ----------------------------------------- ServletResponseWrapper Methods
-
-
-    /**
-     * Set the response that we are wrapping.
-     *
-     * @param response The new wrapped response
-     */
-    @Override
-    public void setResponse(ServletResponse response) {
-
-        super.setResponse(response);
-
-    }
-
-
-    // -------------------------------------------------------- Package Methods
-
-    /**
-     * Set the included flag for this response.
-     *
-     * @param included The new included flag
-     */
-    void setIncluded(boolean included) {
-
-        this.included = included;
-
-    }
+	}
 }
